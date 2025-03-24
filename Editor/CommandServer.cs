@@ -142,30 +142,23 @@ namespace Commandify
             }
         }
 
-        private async Task<T> ExecuteOnMainThread<T>(Func<T> action)
+        private Task<T> ExecuteOnMainThread<T>(Func<T> action)
         {
-            T result = default;
-            Exception exception = null;
-            
-            await Task.Run(() =>
+            var tcs = new TaskCompletionSource<T>();
+
+            EditorApplication.delayCall += () =>
             {
-                EditorApplication.delayCall += () =>
+                try
                 {
-                    try
-                    {
-                        result = action();
-                    }
-                    catch (Exception ex)
-                    {
-                        exception = ex;
-                    }
-                };
-            });
+                    tcs.TrySetResult(action());
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            };
 
-            if (exception != null)
-                throw exception;
-
-            return result;
+            return tcs.Task;
         }
     }
 }
