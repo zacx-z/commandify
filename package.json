@@ -1,11 +1,11 @@
 {
-  "name": "com.thelastsquad.commandify",
+  "name": "com.nelasystem.commandify",
   "version": "1.0.0",
   "displayName": "Commandify",
   "description": "A command-line interface for Unity Editor operations",
   "unity": "2021.3",
   "author": {
-    "name": "TheLastSquad",
-    "url": "https://github.com/thelastsquad"
+    "name": "Zack Zhang",
+    "url": "https://github.com/zacx-z"
   }
 }

@@ -145,9 +145,16 @@ namespace Commandify
         private Task<T> ExecuteOnMainThread<T>(Func<T> action)
         {
             var tcs = new TaskCompletionSource<T>();
+            bool executed = false;
 
-            EditorApplication.delayCall += () =>
+            EditorApplication.update += OnUpdate;
+
+            void OnUpdate()
             {
+                if (executed) return;
+                executed = true;
+                EditorApplication.update -= OnUpdate;
+
                 try
                 {
                     tcs.TrySetResult(action());
@@ -156,7 +163,7 @@ namespace Commandify
                 {
                     tcs.TrySetException(ex);
                 }
-            };
+            }
 
             return tcs.Task;
         }
