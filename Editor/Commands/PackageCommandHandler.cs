@@ -52,8 +52,7 @@ namespace Commandify
         private string InstallPackage(string packageId, CommandContext context)
         {
             // Handle variable reference
-            if (packageId.StartsWith("$"))
-                packageId = context.ResolveStringReference(packageId);
+            packageId = context.ResolveStringReference(packageId);
 
             if (string.IsNullOrEmpty(packageId))
                 throw new ArgumentException("Invalid package identifier");

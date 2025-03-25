@@ -41,23 +41,19 @@ namespace Commandify
             for (int i = 0; i < args.Count; i++)
             {
                 string arg = args[i];
-                // Handle variable references in arguments
-                if (arg.StartsWith("$"))
-                    arg = context.ResolveStringReference(arg);
 
                 switch (arg)
                 {
                     case "--filter":
                         if (++i < args.Count)
-                            filterSpec = args[i].StartsWith("$") ? 
-                                context.ResolveStringReference(args[i]) : args[i];
+                            filterSpec = context.ResolveStringReference(args[i]);
                         break;
                     case "--recursive":
                         recursive = true;
                         break;
                     default:
                         if (path == null)
-                            path = arg;
+                            path = context.ResolveStringReference(arg);
                         break;
                 }
             }
@@ -120,10 +116,8 @@ namespace Commandify
             string path = args[1];
 
             // Handle variable references
-            if (assetType.StartsWith("$"))
-                assetType = context.ResolveStringReference(assetType);
-            if (path.StartsWith("$"))
-                path = context.ResolveStringReference(path);
+            assetType = context.ResolveStringReference(assetType);
+            path = context.ResolveStringReference(path);
 
             path = path.Replace('\\', '/');
             if (!path.StartsWith("Assets/"))
@@ -161,10 +155,8 @@ namespace Commandify
             string destPath = args[1];
 
             // Handle variable references
-            if (sourcePath.StartsWith("$"))
-                sourcePath = context.ResolveStringReference(sourcePath);
-            if (destPath.StartsWith("$"))
-                destPath = context.ResolveStringReference(destPath);
+            sourcePath = context.ResolveStringReference(sourcePath);
+            destPath = context.ResolveStringReference(destPath);
 
             sourcePath = sourcePath.Replace('\\', '/');
             destPath = destPath.Replace('\\', '/');

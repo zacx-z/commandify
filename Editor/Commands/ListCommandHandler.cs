@@ -23,8 +23,7 @@ namespace Commandify
             for (int i = 0; i < args.Count; i++)
             {
                 string arg = args[i];
-                if (arg.StartsWith("$"))
-                    arg = context.ResolveStringReference(arg);
+                arg = context.ResolveStringReference(arg);
 
                 switch (arg)
                 {
@@ -36,8 +35,7 @@ namespace Commandify
                         break;
                     case "--filter":
                         if (++i < args.Count)
-                            filterPattern = args[i].StartsWith("$") ? 
-                                context.ResolveStringReference(args[i]) : args[i];
+                            filterPattern = context.ResolveStringReference(args[i]);
                         break;
                     default:
                         if (selector == null)

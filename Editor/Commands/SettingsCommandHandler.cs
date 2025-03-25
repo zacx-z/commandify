@@ -69,8 +69,7 @@ namespace Commandify
                 throw new ArgumentException("Setting name required");
 
             string settingName = args[0];
-            if (settingName.StartsWith("$"))
-                settingName = context.ResolveStringReference(settingName);
+            settingName = context.ResolveStringReference(settingName);
 
             object value = GetSettingValue(settingName);
             if (value == null)
@@ -86,12 +85,10 @@ namespace Commandify
                 throw new ArgumentException("Setting name and value required");
 
             string settingName = args[0];
-            if (settingName.StartsWith("$"))
-                settingName = context.ResolveStringReference(settingName);
+            settingName = context.ResolveStringReference(settingName);
 
             string value = args[1];
-            if (value.StartsWith("$"))
-                value = context.ResolveStringReference(value);
+            value = context.ResolveStringReference(value);
 
             if (SetSettingValue(settingName, value))
             {

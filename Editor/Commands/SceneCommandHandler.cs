@@ -21,7 +21,7 @@ namespace Commandify
             switch (subCommand.ToLower())
             {
                 case "list":
-                    return ListScenes();
+                    return ListScenes(subArgs);
                 case "open":
                     return OpenScene(subArgs, context);
                 case "new":
@@ -37,22 +37,43 @@ namespace Commandify
             }
         }
 
-        private string ListScenes()
+        private string ListScenes(List<string> args)
         {
             var scenes = new List<string>();
+            bool showBuild = args.Contains("--build");
+            bool showOpened = args.Contains("--opened");
+            bool showActive = args.Contains("--active");
+            bool showAll = !showBuild && !showOpened && !showActive;
 
-            // List scenes in build settings
-            for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
+            if (showBuild)
             {
-                var scene = EditorBuildSettings.scenes[i];
-                scenes.Add($"[{i}] {scene.path} (Build: {(scene.enabled ? "Enabled" : "Disabled")})");
+                for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
+                {
+                    var scene = EditorBuildSettings.scenes[i];
+                    scenes.Add($"[Build {i}] {scene.path} ({(scene.enabled ? "Enabled" : "Disabled")})");
+                }
             }
-
-            // List currently loaded scenes
-            for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+            else if (showOpened)
             {
-                var scene = EditorSceneManager.GetSceneAt(i);
-                scenes.Add($"[Loaded] {scene.path} (Active: {scene == EditorSceneManager.GetActiveScene()})");
+                for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+                {
+                    var scene = EditorSceneManager.GetSceneAt(i);
+                    scenes.Add($"[Loaded] {scene.path}");
+                }
+            }
+            else if (showActive)
+            {
+                var activeScene = EditorSceneManager.GetActiveScene();
+                scenes.Add($"[Active] {activeScene.path}");
+            }
+            else
+            {
+                var guids = AssetDatabase.FindAssets("t:Scene");
+                foreach (var guid in guids)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    scenes.Add($"[Asset] {path}");
+                }
             }
 
             return scenes.Any() ? string.Join("\n", scenes) : "No scenes found";
@@ -67,8 +88,7 @@ namespace Commandify
             bool additive = args.Contains("--additive");
 
             // Handle variable reference
-            if (scenePathOrIndex.StartsWith("$"))
-                scenePathOrIndex = context.ResolveStringReference(scenePathOrIndex);
+            scenePathOrIndex = context.ResolveStringReference(scenePathOrIndex);
 
             string scenePath;
             if (int.TryParse(scenePathOrIndex, out int buildIndex))
@@ -123,8 +143,7 @@ namespace Commandify
             string sceneNameOrIndex = args[0];
 
             // Handle variable reference
-            if (sceneNameOrIndex.StartsWith("$"))
-                sceneNameOrIndex = context.ResolveStringReference(sceneNameOrIndex);
+            sceneNameOrIndex = context.ResolveStringReference(sceneNameOrIndex);
 
             var scene = GetSceneByNameOrIndex(sceneNameOrIndex);
             if (!scene.IsValid())
@@ -145,8 +164,7 @@ namespace Commandify
             string sceneNameOrIndex = args[0];
 
             // Handle variable reference
-            if (sceneNameOrIndex.StartsWith("$"))
-                sceneNameOrIndex = context.ResolveStringReference(sceneNameOrIndex);
+            sceneNameOrIndex = context.ResolveStringReference(sceneNameOrIndex);
 
             var scene = GetSceneByNameOrIndex(sceneNameOrIndex);
             if (!scene.IsValid())

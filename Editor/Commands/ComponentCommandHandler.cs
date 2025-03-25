@@ -61,8 +61,7 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]);
             string componentType = args[1];
-            if (componentType.StartsWith("$"))
-                componentType = context.ResolveStringReference(componentType);
+            componentType = context.ResolveStringReference(componentType);
 
             var type = GetComponentType(componentType);
             if (type == null)

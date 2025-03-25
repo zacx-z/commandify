@@ -54,9 +54,6 @@ namespace Commandify
                 throw new ArgumentException("Variable name required");
 
             string name = args[0];
-            if (name.StartsWith("$"))
-                name = name.Substring(1);
-
             var value = context.GetVariable(name);
             if (value == null)
                 throw new ArgumentException($"Variable not found: ${name}");
@@ -72,8 +69,7 @@ namespace Commandify
                 throw new ArgumentException("Variable name and value required");
 
             string name = args[0];
-            if (name.StartsWith("$"))
-                name = name.Substring(1);
+            name = context.ResolveStringReference(name);
 
             string valueStr = args[1];
             object value;

@@ -96,8 +96,7 @@ namespace Commandify
             string prefabPath = args[1];
 
             // Handle variable reference in path
-            if (prefabPath.StartsWith("$"))
-                prefabPath = context.ResolveStringReference(prefabPath);
+            prefabPath = context.ResolveStringReference(prefabPath);
 
             // Ensure path has .prefab extension
             if (!prefabPath.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))

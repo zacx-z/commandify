@@ -21,9 +21,6 @@ namespace Commandify
             for (int i = 0; i < args.Count; i++)
             {
                 string arg = args[i];
-                if (arg.StartsWith("$"))
-                    arg = context.ResolveStringReference(arg);
-
                 switch (arg)
                 {
                     case "--add":

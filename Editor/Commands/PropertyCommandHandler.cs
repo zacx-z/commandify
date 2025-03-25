@@ -73,8 +73,7 @@ namespace Commandify
                 throw new ArgumentException("No objects found");
 
             string propertyPath = args[1];
-            if (propertyPath.StartsWith("$"))
-                propertyPath = context.ResolveStringReference(propertyPath);
+            propertyPath = context.ResolveStringReference(propertyPath);
 
             var values = new List<string>();
             foreach (var obj in objects)
@@ -103,12 +102,10 @@ namespace Commandify
                 throw new ArgumentException("No objects found");
 
             string propertyPath = args[1];
-            if (propertyPath.StartsWith("$"))
-                propertyPath = context.ResolveStringReference(propertyPath);
+            propertyPath = context.ResolveStringReference(propertyPath);
 
             string value = args[2];
-            if (value.StartsWith("$"))
-                value = context.ResolveStringReference(value);
+            value = context.ResolveStringReference(value);
 
             int count = 0;
             foreach (var obj in objects)

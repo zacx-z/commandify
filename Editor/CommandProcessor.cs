@@ -56,10 +56,7 @@ namespace Commandify
 
                 var args = tokens.Skip(1).ToList();
                 string result = handler.Execute(args, context);
-                
-                // Store the result in the last result variable
-                context.SetLastResult(result);
-                
+
                 return result;
             }
             catch (Exception ex)
