@@ -45,6 +45,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "Connecting to Commandify server at $HOST:$PORT..."
+
+# Test server connection
+if ! nc -z $HOST $PORT 2>/dev/null; then
+    echo "Error: Could not connect to Commandify server at $HOST:$PORT"
+    echo "Make sure the Unity Editor is running and the Commandify server is started."
+    exit 1
+fi
+
 echo "Type 'help' for available commands, or 'exit' to quit."
 echo "----------------------------------------"
 
