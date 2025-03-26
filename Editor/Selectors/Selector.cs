@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine.SceneManagement;
+using System.IO;
 
 namespace Commandify
 {
@@ -112,12 +113,15 @@ namespace Commandify
             var current = new List<GameObject>();
 
             // Start with root objects
-            if (parts[0] == "**") {
+            if (parts[0] == "**")
+            {
                 var matches = GetLoadedScenes().SelectMany(scene => scene.GetRootGameObjects())
                     .SelectMany(go => go.GetComponentsInChildren<Transform>(true))
                     .Select((t => t.gameObject));
                 current.AddRange(matches);
-            } else {
+            }
+            else
+            {
                 var rootRegex = WildcardToRegex(parts[0]);
                 var matches = GetLoadedScenes().SelectMany(scene => scene.GetRootGameObjects())
                     .Where(go => rootRegex.IsMatch(go.name));
@@ -145,15 +149,18 @@ namespace Commandify
 
             return current.Distinct();
 
-            IEnumerable<Scene> GetLoadedScenes() {
+            IEnumerable<Scene> GetLoadedScenes()
+            {
                 for (int i = 0; i < SceneManager.sceneCount; i++)
                 {
                     yield return SceneManager.GetSceneAt(i);
                 }
             }
 
-            IEnumerable<Transform> GetTransformChildren(GameObject go) {
-                foreach (var child in go.transform) {
+            IEnumerable<Transform> GetTransformChildren(GameObject go)
+            {
+                foreach (var child in go.transform)
+                {
                     yield return (Transform)child;
                 }
             }
@@ -161,15 +168,71 @@ namespace Commandify
 
         private IEnumerable<UnityEngine.Object> FindAssets(string path)
         {
-            if (System.IO.File.Exists(path))
+            string fullPath = path.StartsWith("Assets/") ? path : "Assets/" + path;
+
+            if (!fullPath.Contains("*") && !fullPath.Contains("?"))
             {
-                var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
-                return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                if (System.IO.File.Exists(fullPath))
+                {
+                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(fullPath);
+                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                }
+                return Enumerable.Empty<UnityEngine.Object>();
             }
 
-            var guids = AssetDatabase.FindAssets(path);
-            return guids.Select(guid => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
-                AssetDatabase.GUIDToAssetPath(guid)));
+            var files = SearchFiles(fullPath);
+            return files.Select(f => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(f))
+                .Where(obj => obj != null);
+        }
+
+        private IEnumerable<string> SearchFiles(string pattern)
+        {
+            pattern = pattern.Replace('\\', '/') ?? "";
+
+            var parts = pattern.Split("/");
+
+            var current = new List<string>() { "." };
+            bool parentDoubleStars = false;
+
+            for (var i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i];
+                if (i < parts.Length - 1)
+                {
+                    if (part == "**")
+                    {
+                        parentDoubleStars = true;
+                    }
+                    else
+                    {
+                        current = current
+                            .SelectMany(basePath => Directory.GetDirectories(basePath, part,
+                                parentDoubleStars ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
+                            .ToList();
+                        parentDoubleStars = false;
+                    }
+                }
+                else
+                {
+                    if (part == "**")
+                    {
+                        current = current
+                            .SelectMany(basePath => Directory.GetFiles(basePath, "*", SearchOption.AllDirectories))
+                            .ToList();
+                    }
+                    else
+                    {
+                        current = current
+                            .SelectMany(basePath => Directory.GetFiles(basePath, part,
+                                parentDoubleStars ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
+                            .ToList();
+                    }
+                }
+            }
+
+            current = current.Select(path => path.Substring(2)).ToList();
+
+            return current;
         }
 
         private IEnumerable<UnityEngine.Object> QuickSearch(string query)
