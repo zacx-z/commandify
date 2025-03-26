@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEngine.SceneManagement;
 
 namespace Commandify
 {
@@ -107,33 +108,26 @@ namespace Commandify
 
         private IEnumerable<UnityEngine.Object> FindInHierarchy(string path)
         {
-            if (path == "*")
-            {
-                return Resources.FindObjectsOfTypeAll<GameObject>()
-                    .Where(go => go.scene.isLoaded)
-                    .Cast<UnityEngine.Object>();
-            }
-
             var parts = path.Split('/');
             var current = new List<GameObject>();
 
             // Start with root objects
-            if (string.IsNullOrEmpty(parts[0]))
-            {
-                current.AddRange(UnityEngine.SceneManagement.SceneManager.GetActiveScene()
-                    .GetRootGameObjects());
-            }
-            else
-            {
-                var matches = Resources.FindObjectsOfTypeAll<GameObject>()
-                    .Where(go => go.scene.isLoaded && go.name == parts[0]);
+            if (parts[0] == "**") {
+                var matches = GetLoadedScenes().SelectMany(scene => scene.GetRootGameObjects())
+                    .SelectMany(go => go.GetComponentsInChildren<Transform>(true))
+                    .Select((t => t.gameObject));
+                current.AddRange(matches);
+            } else {
+                var rootRegex = WildcardToRegex(parts[0]);
+                var matches = GetLoadedScenes().SelectMany(scene => scene.GetRootGameObjects())
+                    .Where(go => rootRegex.IsMatch(go.name));
                 current.AddRange(matches);
             }
 
             // Navigate through hierarchy
             for (int i = 1; i < parts.Length; i++)
             {
-                if (parts[i] == "*")
+                if (parts[i] == "**")
                 {
                     current = current.SelectMany(go => go.GetComponentsInChildren<Transform>(true))
                         .Select(t => t.gameObject)
@@ -141,14 +135,28 @@ namespace Commandify
                 }
                 else
                 {
-                    current = current.SelectMany(go => go.GetComponentsInChildren<Transform>(true))
-                        .Where(t => t.name == parts[i])
+                    var regex = WildcardToRegex(parts[i]);
+                    current = current.SelectMany(GetTransformChildren)
+                        .Where(t => regex.IsMatch(t.name))
                         .Select(t => t.gameObject)
                         .ToList();
                 }
             }
 
-            return current.Cast<UnityEngine.Object>();
+            return current.Distinct();
+
+            IEnumerable<Scene> GetLoadedScenes() {
+                for (int i = 0; i < SceneManager.sceneCount; i++)
+                {
+                    yield return SceneManager.GetSceneAt(i);
+                }
+            }
+
+            IEnumerable<Transform> GetTransformChildren(GameObject go) {
+                foreach (var child in go.transform) {
+                    yield return (Transform)child;
+                }
+            }
         }
 
         private IEnumerable<UnityEngine.Object> FindAssets(string path)
@@ -215,6 +223,27 @@ namespace Commandify
             }
 
             return result;
+        }
+
+        private static Regex WildcardToRegex(string pattern)
+        {
+            return GetRegex("^" + Regex.Escape(pattern)
+                .Replace("\\*", ".*")
+                .Replace("\\?", ".")
+                + "$");
+        }
+
+        private static readonly Dictionary<string, Regex> regexCache = new Dictionary<string, Regex>();
+
+        private static Regex GetRegex(string pattern)
+        {
+            if (!regexCache.TryGetValue(pattern, out Regex regex))
+            {
+                regex = new Regex(pattern, RegexOptions.Compiled);
+                regexCache[pattern] = regex;
+            }
+
+            return regex;
         }
     }
 }
