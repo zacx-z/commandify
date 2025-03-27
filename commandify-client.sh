@@ -11,14 +11,16 @@ touch "$HISTFILE"
 
 PORT=12345
 HOST=localhost
+SINGLE_COMMAND=""
 
 # Function to print usage
 print_usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  -p, --port PORT    Specify port (default: 12345)"
-    echo "  -h, --host HOST    Specify host (default: localhost)"
-    echo "  --help            Show this help message"
+    echo "  -p, --port PORT      Specify port (default: 12345)"
+    echo "  -h, --host HOST      Specify host (default: localhost)"
+    echo "  -c, --command CMD    Run a single command and exit"
+    echo "  --help              Show this help message"
 }
 
 # Parse command line arguments
@@ -32,6 +34,10 @@ while [[ $# -gt 0 ]]; do
             HOST="$2"
             shift 2
             ;;
+        -c|--command)
+            SINGLE_COMMAND="$2"
+            shift 2
+            ;;
         --help)
             print_usage
             exit 0
@@ -43,6 +49,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# If single command mode, execute it and exit
+if [[ -n "$SINGLE_COMMAND" ]]; then
+    response=$(echo "$SINGLE_COMMAND" | nc $HOST $PORT)
+    if [[ -n "$response" ]]; then
+        echo "$response"
+    fi
+    exit 0
+fi
 
 echo "Connecting to Commandify server at $HOST:$PORT..."
 
