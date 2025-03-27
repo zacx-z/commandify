@@ -9,62 +9,6 @@ namespace Commandify
     {
         public string Execute(List<string> args, CommandContext context)
         {
-            if (args.Count == 0)
-                throw new ArgumentException("No variable subcommand specified");
-
-            string subCommand = args[0];
-            var subArgs = args.Skip(1).ToList();
-
-            switch (subCommand.ToLower())
-            {
-                case "list":
-                    return ListVariables(context);
-                case "get":
-                    return GetVariable(subArgs, context);
-                case "set":
-                    return SetVariable(subArgs, context);
-                case "clear":
-                    return ClearVariables(context);
-                default:
-                    throw new ArgumentException($"Unknown variable subcommand: {subCommand}");
-            }
-        }
-
-        private string ListVariables(CommandContext context)
-        {
-            var variables = context.GetAllVariables();
-            if (!variables.Any())
-                return "No variables set";
-
-            var lines = new List<string>();
-            foreach (var variable in variables)
-            {
-                string valueStr = FormatValue(variable.Value);
-                lines.Add($"${variable.Key} = {valueStr}");
-            }
-
-            // Store the variable names in the result
-            context.SetLastResult(variables.Keys.ToList());
-            return string.Join("\n", lines);
-        }
-
-        private string GetVariable(List<string> args, CommandContext context)
-        {
-            if (args.Count == 0)
-                throw new ArgumentException("Variable name required");
-
-            string name = args[0];
-            var value = context.GetVariable(name);
-            if (value == null)
-                throw new ArgumentException($"Variable not found: ${name}");
-
-            // Store the variable value in the result
-            context.SetLastResult(value);
-            return $"${name} = {FormatValue(value)}";
-        }
-
-        private string SetVariable(List<string> args, CommandContext context)
-        {
             if (args.Count < 2)
                 throw new ArgumentException("Variable name and value required");
 
@@ -106,13 +50,6 @@ namespace Commandify
 
             context.SetVariable(name, value);
             return $"Set ${name} = {FormatValue(value)}";
-        }
-
-        private string ClearVariables(CommandContext context)
-        {
-            int count = context.GetAllVariables().Count;
-            context.ClearVariables();
-            return $"Cleared {count} variable(s)";
         }
 
         private string FormatValue(object value)
