@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine.SceneManagement;
 using System.IO;
+using UnityEditor.Search;
 
 namespace Commandify
 {
@@ -237,9 +238,21 @@ namespace Commandify
 
         private IEnumerable<UnityEngine.Object> QuickSearch(string query)
         {
-            // Note: This is a simplified implementation
-            // In a full implementation, you would integrate with Unity's Quick Search API
-            return FindAssets(query);
+            var providers = new[] {
+                "asset",
+                "scene",
+                "find",
+                "menu",
+                "packages",
+                "log",
+            };
+
+            var context = SearchService.CreateContext(providers);
+            context.searchText = query;
+            context.wantsMore = true;
+
+            var items = SearchService.GetItems(context);
+            return items.Select(item => item.ToObject()).Where(obj => obj != null);
         }
 
         private IEnumerable<UnityEngine.Object> FilterByComponent(IEnumerable<UnityEngine.Object> objects, string componentType)
