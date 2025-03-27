@@ -84,6 +84,19 @@ transform scale selected 2 2 2      # Double the size
 - `package list` - List installed packages
 - `package install <package-name>` - Install package
 - `settings set/get <setting-path> <value>` - Manage settings
+- `exec <menu-path>` - Execute menu item
+- `exec --search [pattern]` - Search menu items by pattern
+
+Examples:
+```bash
+# Execute menu items
+exec "Window/Commandify/Server Settings"  # Open server settings window
+exec "Assets/Create/Material"             # Create new material
+
+# Search menu items
+exec --search window     # Search menu items containing "window"
+exec --search "Assets/"  # Search menu items under Assets menu
+```
 
 ## Selector Grammar
 ```
