@@ -75,7 +75,7 @@ namespace Commandify
             // Handle QuickSearch
             if (selector.StartsWith("@@"))
             {
-                return QuickSearch(selector.Substring(2));
+                return QuickSearch(selector.Substring(2)).Select(item => item.ToObject()).Where(obj => obj != null);
             }
 
             // Handle component type filter
@@ -236,7 +236,7 @@ namespace Commandify
             return current;
         }
 
-        private IEnumerable<UnityEngine.Object> QuickSearch(string query)
+        private List<SearchItem> QuickSearch(string query)
         {
             var providers = new[] {
                 "asset",
@@ -252,7 +252,7 @@ namespace Commandify
             context.wantsMore = true;
 
             var items = SearchService.GetItems(context);
-            return items.Select(item => item.ToObject()).Where(obj => obj != null);
+            return items;
         }
 
         private IEnumerable<UnityEngine.Object> FilterByComponent(IEnumerable<UnityEngine.Object> objects, string componentType)
@@ -265,8 +265,7 @@ namespace Commandify
 
             return objects.OfType<GameObject>()
                 .Select(go => go.GetComponent(type))
-                .Where(c => c != null)
-                .Cast<UnityEngine.Object>();
+                .Where(c => c != null);
         }
 
         private IEnumerable<UnityEngine.Object> ApplyRangeSpecifier(IEnumerable<UnityEngine.Object> objects, string rangeSpec)

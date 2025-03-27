@@ -16,6 +16,9 @@ namespace Commandify
         private bool isRunning;
         private int port = 12345;
 
+        private const string AUTO_START_PREF_KEY = "Commandify_AutoStartServer";
+        private const string PORT_PREF_KEY = "Commandify_ServerPort";
+
         public bool IsRunning => isRunning;
         public int Port 
         { 
@@ -31,7 +34,11 @@ namespace Commandify
         private static CommandServer instance;
         public static CommandServer Instance => instance ??= new CommandServer();
 
-        private CommandServer() { }
+        private CommandServer()
+        {
+            // Load saved port from EditorPrefs
+            port = EditorPrefs.GetInt(PORT_PREF_KEY, 12345);
+        }
 
         public void Start()
         {
@@ -43,6 +50,10 @@ namespace Commandify
                 listener = new TcpListener(IPAddress.Loopback, port);
                 listener.Start();
                 isRunning = true;
+
+                // Save current port and auto-start preference
+                EditorPrefs.SetInt(PORT_PREF_KEY, port);
+                EditorPrefs.SetBool(AUTO_START_PREF_KEY, true);
 
                 Debug.Log($"[Commandify] Server started on port {port}");
                 _ = ListenForClientsAsync(cancellationTokenSource.Token);
@@ -63,6 +74,10 @@ namespace Commandify
                 cancellationTokenSource?.Cancel();
                 listener?.Stop();
                 isRunning = false;
+
+                // Clear auto-start preference when explicitly stopped
+                EditorPrefs.SetBool(AUTO_START_PREF_KEY, false);
+
                 Debug.Log("[Commandify] Server stopped");
             }
             catch (Exception ex)
@@ -166,6 +181,16 @@ namespace Commandify
             }
 
             return tcs.Task;
+        }
+
+        [InitializeOnLoadMethod]
+        private static void InitializeOnLoad()
+        {
+            // Check if server should auto-start
+            if (EditorPrefs.GetBool(AUTO_START_PREF_KEY, false))
+            {
+                Instance.Start();
+            }
         }
     }
 }
