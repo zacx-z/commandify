@@ -57,6 +57,25 @@ echo "scene list --all" | nc localhost 12345
 - `component <command> <selector> [<args>]` - Manage components
 - `transform <command> <selector> [<args>]` - Transform operations
 
+### Transform Operations
+- `transform translate <selector> [<x> <y> <z>]` - Translate objects or show current positions
+- `transform rotate <selector> [<x> <y> <z>]` - Rotate objects or show current rotations
+- `transform scale <selector> [<x> <y> <z>]` - Scale objects or show current scales
+- `transform parent <parent-selector> <child-selector>...` - Parent objects
+
+Examples:
+```bash
+# Show current transform values
+transform translate selected         # Show positions
+transform rotate ^Cube              # Show rotations
+transform scale selected:Renderer   # Show scales
+
+# Apply transformations
+transform translate selected 0 1 0   # Move up by 1 unit
+transform rotate selected 0 90 0     # Rotate 90 degrees around Y
+transform scale selected 2 2 2      # Double the size
+```
+
 ### Variables
 - `set [--add | --sub] $<varname> <selector>` - Set variables
 - Built-in variable `$?` stores last command result

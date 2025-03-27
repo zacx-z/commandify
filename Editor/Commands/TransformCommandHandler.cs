@@ -33,10 +33,21 @@ namespace Commandify
 
         private string TranslateObjects(List<string> args, CommandContext context)
         {
-            if (args.Count < 4)
-                throw new ArgumentException("Selector and three float values (x, y, z) required");
+            if (args.Count == 0)
+                throw new ArgumentException("Selector required");
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+
+            // If only selector provided, show current positions
+            if (args.Count == 1)
+            {
+                var positions = objects.Select(o => o.transform.position);
+                context.SetLastResult(objects);
+                return string.Join("\n", positions.Select((pos, i) => $"Object {i + 1}: Position ({pos.x}, {pos.y}, {pos.z})"));
+            }
+
+            if (args.Count < 4)
+                throw new ArgumentException("Three float values (x, y, z) required");
 
             // Handle potential variable references for coordinates
             float x = ParseCoordinate(args[1], context);
@@ -62,10 +73,21 @@ namespace Commandify
 
         private string RotateObjects(List<string> args, CommandContext context)
         {
-            if (args.Count < 4)
-                throw new ArgumentException("Selector and three float values (x, y, z) required");
+            if (args.Count == 0)
+                throw new ArgumentException("Selector required");
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+
+            // If only selector provided, show current rotations
+            if (args.Count == 1)
+            {
+                var rotations = objects.Select(o => o.transform.rotation.eulerAngles);
+                context.SetLastResult(objects);
+                return string.Join("\n", rotations.Select((rot, i) => $"Object {i + 1}: Rotation ({rot.x}, {rot.y}, {rot.z})"));
+            }
+
+            if (args.Count < 4)
+                throw new ArgumentException("Three float values (x, y, z) required");
 
             float x = ParseCoordinate(args[1], context);
             float y = ParseCoordinate(args[2], context);
@@ -89,10 +111,21 @@ namespace Commandify
 
         private string ScaleObjects(List<string> args, CommandContext context)
         {
-            if (args.Count < 4)
-                throw new ArgumentException("Selector and three float values (x, y, z) required");
+            if (args.Count == 0)
+                throw new ArgumentException("Selector required");
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+
+            // If only selector provided, show current scales
+            if (args.Count == 1)
+            {
+                var scales = objects.Select(o => o.transform.localScale);
+                context.SetLastResult(objects);
+                return string.Join("\n", scales.Select((scale, i) => $"Object {i + 1}: Scale ({scale.x}, {scale.y}, {scale.z})"));
+            }
+
+            if (args.Count < 4)
+                throw new ArgumentException("Three float values (x, y, z) required");
 
             float x = ParseCoordinate(args[1], context);
             float y = ParseCoordinate(args[2], context);
