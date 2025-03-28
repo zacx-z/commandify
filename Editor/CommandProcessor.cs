@@ -1,9 +1,7 @@
-using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text;
 
 namespace Commandify
 {
@@ -12,7 +10,9 @@ namespace Commandify
         private static CommandProcessor instance;
         public static CommandProcessor Instance => instance ??= new CommandProcessor();
 
-        private Dictionary<string, ICommandHandler> commandHandlers;
+        private Dictionary<string, ICommandHandler> handlers;
+        private readonly StringBuilder outputBuffer = new();
+        private readonly StringBuilder errorBuffer = new();
         private CommandContext context;
 
         private CommandProcessor()
@@ -23,7 +23,7 @@ namespace Commandify
 
         private void InitializeHandlers()
         {
-            commandHandlers = new Dictionary<string, ICommandHandler>
+            handlers = new Dictionary<string, ICommandHandler>
             {
                 { "scene", new SceneCommandHandler() },
                 { "asset", new AssetCommandHandler() },
@@ -40,29 +40,69 @@ namespace Commandify
             };
         }
 
+        public void AppendOutput(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            foreach (var line in text.Split('\n'))
+            {
+                outputBuffer.AppendLine($"@O:{line}");
+            }
+        }
+
+        public void AppendError(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            foreach (var line in text.Split('\n'))
+            {
+                errorBuffer.AppendLine($"@E:{line}");
+            }
+        }
+
         public string ProcessCommand(string commandLine)
         {
+            outputBuffer.Clear();
+            errorBuffer.Clear();
+
             if (string.IsNullOrWhiteSpace(commandLine))
-                return "Error: Empty command";
+            {
+                AppendError("Error: Empty command");
+                return errorBuffer.ToString();
+            }
 
             try
             {
                 var tokens = TokenizeCommand(commandLine);
                 if (tokens.Count == 0)
-                    return "Error: Invalid command format";
+                {
+                    AppendError("Error: Invalid command format");
+                    return errorBuffer.ToString();
+                }
 
-                string command = tokens[0];
-                if (!commandHandlers.TryGetValue(command, out var handler))
-                    return $"Error: Unknown command '{command}'";
+                string command = tokens[0].ToLower();
+                if (!handlers.TryGetValue(command, out var handler))
+                {
+                    AppendError($"Error: Unknown command '{command}'");
+                    return errorBuffer.ToString();
+                }
 
                 var args = tokens.Skip(1).ToList();
                 string result = handler.Execute(args, context);
 
-                return result;
+                if (!string.IsNullOrEmpty(result))
+                {
+                    AppendOutput(result);
+                }
+
+                // Combine output and error buffers
+                var combinedOutput = new StringBuilder();
+                combinedOutput.Append(outputBuffer);
+                combinedOutput.Append(errorBuffer);
+                return combinedOutput.ToString().TrimEnd();
             }
             catch (Exception ex)
             {
-                return $"Error: {ex.Message}";
+                AppendError($"Error: {ex.Message}");
+                return errorBuffer.ToString();
             }
         }
 

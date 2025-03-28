@@ -23,6 +23,30 @@ print_usage() {
     echo "  --help              Show this help message"
 }
 
+# Function to handle server response
+handle_response() {
+    local response="$1"
+    local has_error=0
+
+    # Process each line and route to appropriate output
+    while IFS= read -r line; do
+        if [[ "$line" == @O:* ]]; then
+            # Output to stdout, removing the @O: prefix
+            echo "${line#@O:}"
+        elif [[ "$line" == @E:* ]]; then
+            # Output to stderr, removing the @E: prefix
+            echo "${line#@E:}" >&2
+            has_error=1
+        else
+            # Invalid protocol line, treat as error
+            echo "Protocol Error: Invalid line format: $line" >&2
+            has_error=1
+        fi
+    done <<< "$response"
+
+    return $has_error
+}
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -54,7 +78,8 @@ done
 if [[ -n "$SINGLE_COMMAND" ]]; then
     response=$(echo "$SINGLE_COMMAND" | nc $HOST $PORT)
     if [[ -n "$response" ]]; then
-        echo "$response"
+        handle_response "$response"
+        exit $?  # Exit with the error code from handle_response
     fi
     exit 0
 fi
@@ -130,11 +155,12 @@ while true; do
         continue
     fi
 
-    # Send command to server and get response
-    response=$(echo "$cmd" | nc $HOST $PORT)
-
-    # Print response
-    if [[ -n "$response" ]]; then
-        echo "$response"
+    # Send command and handle response
+    if [[ -n "$cmd" ]]; then
+        response=$(echo "$cmd" | nc $HOST $PORT)
+        if [[ -n "$response" ]]; then
+            handle_response "$response"
+            # Don't exit on error in interactive mode
+        fi
     fi
 done

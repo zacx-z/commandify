@@ -79,7 +79,7 @@ namespace Commandify
             }
 
             if (!results.Any())
-                return "No objects found";
+                return null;
 
             // Store the found objects in the result variable
             context.SetLastResult(objects);

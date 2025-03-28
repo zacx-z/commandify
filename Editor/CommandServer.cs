@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -131,8 +132,11 @@ namespace Commandify
                             messageBuilder.Clear();
 
                             string response = await ProcessCommandAsync(command);
-                            byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
-                            await stream.WriteAsync(responseData, 0, responseData.Length, cancellationToken);
+                            if (response != null)
+                            {
+                                byte[] responseData = Encoding.UTF8.GetBytes(response + "\n");
+                                await stream.WriteAsync(responseData, 0, responseData.Length, cancellationToken);
+                            }
                         }
                     }
                 }
@@ -148,12 +152,12 @@ namespace Commandify
             try
             {
                 // Execute on main thread since we're dealing with Unity API
-                string result = await ExecuteOnMainThread(() => CommandProcessor.Instance.ProcessCommand(command));
-                return result ?? "Command executed successfully";
+                return await ExecuteOnMainThread(() => CommandProcessor.Instance.ProcessCommand(command));
             }
             catch (Exception ex)
             {
-                return $"Error: {ex.Message}";
+                // Prefix error with @E: for stderr
+                return $"@E:{ex.Message}";
             }
         }
 
