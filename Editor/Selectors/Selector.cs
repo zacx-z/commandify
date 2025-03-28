@@ -23,9 +23,17 @@ namespace Commandify
 
         public IEnumerable<UnityEngine.Object> Evaluate()
         {
-            var primarySelector = ParsePrimarySelector(selectorString, out var rangeSpecifier);
-            var objects = EvaluatePrimarySelector(primarySelector);
-            return ApplyRangeSpecifier(objects, rangeSpecifier);
+            var results = new List<UnityEngine.Object>();
+            var selectors = selectorString.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var selector in selectors)
+            {
+                var primarySelector = ParsePrimarySelector(selector.Trim(), out var rangeSpecifier);
+                var objects = EvaluatePrimarySelector(primarySelector);
+                results.AddRange(ApplyRangeSpecifier(objects, rangeSpecifier));
+            }
+            
+            return results.Distinct();
         }
 
         private string ParsePrimarySelector(string input, out string rangeSpecifier)
@@ -55,6 +63,18 @@ namespace Commandify
                         return objects;
                     if (value is UnityEngine.Object obj)
                         return new[] { obj };
+                }
+                return Enumerable.Empty<UnityEngine.Object>();
+            }
+
+            // Handle instance ID
+            if (selector.StartsWith("@&"))
+            {
+                string instanceIdStr = selector.Substring(2);
+                if (int.TryParse(instanceIdStr, out int instanceId))
+                {
+                    var obj = EditorUtility.InstanceIDToObject(instanceId);
+                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
                 }
                 return Enumerable.Empty<UnityEngine.Object>();
             }

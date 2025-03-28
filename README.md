@@ -49,7 +49,13 @@ echo "scene list --all" | nc localhost 12345
 - `prefab create [--variant] <selector> <path>` - Create prefab
 
 ### View Operations
-- `list [--filter <filterspec>] [--path] <selector>` - List selected objects
+- `list [--filter <filterspec>] [--format <format>] [--components] <selector>` - List selected objects
+  - `--format`: Output format (default: name only)
+    - `instance-id`: Output as `@&instance-id` format
+    - `path`: Output full hierarchy paths
+    - `full`: Output paths with components
+  - `--components`: Include component types in output
+  - `--filter`: Filter objects by name pattern
 
 ### Edit Operations
 - `select [--add] [--children] <selector>` - Select objects
@@ -101,6 +107,7 @@ exec --search "Assets/"  # Search menu items under Assets menu
 ## Selector Grammar
 ```
 selector:
+    primary-selector
     primary-selector#range-specifier
 
 primary-selector:

@@ -9,15 +9,23 @@ namespace Commandify
 {
     public class ListCommandHandler : ICommandHandler
     {
+        private enum OutputFormat
+        {
+            Default,
+            InstanceId,
+            Path,
+            Full
+        }
+
         public string Execute(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
 
-            bool showPath = false;
             bool showComponents = false;
             string filterPattern = null;
             string selector = null;
+            var format = OutputFormat.Default;
 
             // Parse arguments
             for (int i = 0; i < args.Count; i++)
@@ -27,8 +35,27 @@ namespace Commandify
 
                 switch (arg)
                 {
-                    case "--path":
-                        showPath = true;
+                    case "--format":
+                        if (++i < args.Count)
+                        {
+                            string formatStr = context.ResolveStringReference(args[i]).ToLower();
+                            switch (formatStr)
+                            {
+                                case "instance-id":
+                                case "instanceid":
+                                    format = OutputFormat.InstanceId;
+                                    break;
+                                case "path":
+                                    format = OutputFormat.Path;
+                                    break;
+                                case "full":
+                                    format = OutputFormat.Full;
+                                    break;
+                                default:
+                                    format = OutputFormat.Default;
+                                    break;
+                            }
+                        }
                         break;
                     case "--components":
                         showComponents = true;
@@ -60,22 +87,27 @@ namespace Commandify
             var results = new List<string>();
             foreach (var obj in objects)
             {
-                if (obj is GameObject go)
+                string info;
+                if (format == OutputFormat.InstanceId)
                 {
-                    string info = showPath ? GetObjectPath(go) : go.name;
-                    if (showComponents)
+                    info = $"@&{obj.GetInstanceID()}";
+                }
+                else if (obj is GameObject go)
+                {
+                    info = format == OutputFormat.Path || format == OutputFormat.Full ? GetObjectPath(go) : go.name;
+                    if ((showComponents || format == OutputFormat.Full) && go != null)
                     {
                         var components = go.GetComponents<Component>()
                             .Where(c => c != null)
                             .Select(c => c.GetType().Name);
                         info += $" [{string.Join(", ", components)}]";
                     }
-                    results.Add(info);
                 }
                 else
                 {
-                    results.Add(obj.name);
+                    info = obj.name;
                 }
+                results.Add(info);
             }
 
             if (!results.Any())
