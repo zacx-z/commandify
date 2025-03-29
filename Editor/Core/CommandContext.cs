@@ -96,6 +96,16 @@ namespace Commandify
             throw new ArgumentException($"Last result is not of type {typeof(T).Name}");
         }
 
+        private object ResolveCommandSubstitution(string reference)
+        {
+            if (!reference.StartsWith("$(") || !reference.EndsWith(")"))
+                return null;
+                
+            string command = reference.Substring(2, reference.Length - 3);
+            CommandProcessor.Instance.ExecuteCommand(command);
+            return ResolveReference("$~");
+        }
+
         public IEnumerable<UnityEngine.Object> ResolveObjectReference(string reference)
         {
             if (string.IsNullOrEmpty(reference))
@@ -104,7 +114,8 @@ namespace Commandify
             // If it's a variable reference
             if (reference.StartsWith("$"))
             {
-                var value = GetVariable(reference);
+                var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
+
                 if (value is IEnumerable<UnityEngine.Object> objects)
                     return objects;
                 if (value is UnityEngine.Object obj)
@@ -125,16 +136,11 @@ namespace Commandify
             // If it's a variable reference
             if (reference.StartsWith("$"))
             {
-                var value = GetVariable(reference);
+                var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
                 return value?.ToString() ?? "null";
             }
 
             return reference;
-        }
-
-        public IReadOnlyDictionary<string, object> GetAllVariables()
-        {
-            return variables;
         }
 
         public object ResolveReference(string reference)
@@ -142,12 +148,16 @@ namespace Commandify
             if (!reference.StartsWith("$"))
                 return reference;
 
-            string varName = reference.Substring(1);
-            var value = GetVariable(varName);
+            var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
             if (value == null)
                 throw new ArgumentException($"Variable not found: {reference}");
 
             return value;
+        }
+
+        public IReadOnlyDictionary<string, object> GetAllVariables()
+        {
+            return variables;
         }
     }
 }

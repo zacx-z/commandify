@@ -71,22 +71,7 @@ namespace Commandify
 
             try
             {
-                var tokens = TokenizeCommand(commandLine);
-                if (tokens.Count == 0)
-                {
-                    AppendError("Error: Invalid command format");
-                    return errorBuffer.ToString();
-                }
-
-                string command = tokens[0].ToLower();
-                if (!handlers.TryGetValue(command, out var handler))
-                {
-                    AppendError($"Error: Unknown command '{command}'");
-                    return errorBuffer.ToString();
-                }
-
-                var args = tokens.Skip(1).ToList();
-                string result = handler.Execute(args, context);
+                string result = ExecuteCommand(commandLine);
 
                 if (!string.IsNullOrEmpty(result))
                 {
@@ -112,9 +97,14 @@ namespace Commandify
             var currentToken = new List<char>();
             bool inQuotes = false;
             bool escaped = false;
+            bool inSubCommand = false;
+            int subCommandDepth = 0;
 
-            foreach (char c in commandLine)
+            for (int i = 0; i < commandLine.Length; i++)
             {
+                char c = commandLine[i];
+                char? nextChar = i + 1 < commandLine.Length ? commandLine[i + 1] : null;
+
                 if (escaped)
                 {
                     currentToken.Add(c);
@@ -124,9 +114,35 @@ namespace Commandify
                 {
                     escaped = true;
                 }
-                else if (c == '"')
+                else if (c == '"' && !inSubCommand)
                 {
                     inQuotes = !inQuotes;
+                }
+                else if (c == '$' && nextChar == '(' && !inQuotes)
+                {
+                    if (currentToken.Count > 0)
+                    {
+                        tokens.Add(new string(currentToken.ToArray()));
+                        currentToken.Clear();
+                    }
+                    inSubCommand = true;
+                    subCommandDepth = 1;
+                    i++; // Skip the next '('
+                }
+                else if (inSubCommand)
+                {
+                    if (c == '(')
+                        subCommandDepth++;
+                    else if (c == ')')
+                    {
+                        subCommandDepth--;
+                        if (subCommandDepth == 0)
+                        {
+                            inSubCommand = false;
+                            tokens.Add(new string(currentToken.ToArray()));
+                            currentToken.Clear();
+                        }
+                    }
                 }
                 else if (char.IsWhiteSpace(c) && !inQuotes)
                 {
@@ -148,6 +164,25 @@ namespace Commandify
             }
 
             return tokens;
+        }
+
+        public string ExecuteCommand(string commandLine) {
+            var tokens = TokenizeCommand(commandLine);
+            if (tokens.Count == 0)
+            {
+                AppendError("Error: Invalid command format");
+                return errorBuffer.ToString();
+            }
+
+            string command = tokens[0].ToLower();
+            if (!handlers.TryGetValue(command, out var handler))
+            {
+                AppendError($"Error: Unknown command '{command}'");
+                return errorBuffer.ToString();
+            }
+
+            var args = tokens.Skip(1).ToList();
+            return handler.Execute(args, context);
         }
     }
 }
