@@ -45,7 +45,7 @@ namespace Commandify
             if (string.IsNullOrEmpty(text)) return;
             foreach (var line in text.Split('\n'))
             {
-                outputBuffer.AppendLine($"@O:{line}");
+                outputBuffer.AppendLine($"[OUT]{line}");
             }
         }
 
@@ -54,7 +54,7 @@ namespace Commandify
             if (string.IsNullOrEmpty(text)) return;
             foreach (var line in text.Split('\n'))
             {
-                errorBuffer.AppendLine($"@E:{line}");
+                errorBuffer.AppendLine($"[ERR]{line}");
             }
         }
 

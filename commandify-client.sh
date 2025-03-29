@@ -30,12 +30,12 @@ handle_response() {
 
     # Process each line and route to appropriate output
     while IFS= read -r line; do
-        if [[ "$line" == @O:* ]]; then
-            # Output to stdout, removing the @O: prefix
-            echo "${line#@O:}"
-        elif [[ "$line" == @E:* ]]; then
-            # Output to stderr, removing the @E: prefix
-            echo "${line#@E:}" >&2
+        if [[ "$line" == "[OUT]"* ]]; then
+            # Output to stdout, removing the [OUT] prefix
+            echo "${line#"[OUT]"}"
+        elif [[ "$line" == "[ERR]"* ]]; then
+            # Output to stderr, removing the [ERR] prefix
+            echo "${line#"[ERR]"}" >&2
             has_error=1
         else
             # Invalid protocol line, treat as error

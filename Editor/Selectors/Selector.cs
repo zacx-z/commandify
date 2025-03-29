@@ -28,15 +28,15 @@ namespace Commandify
             
             foreach (var selector in selectors)
             {
-                var primarySelector = ParsePrimarySelector(selector.Trim(), out var rangeSpecifier);
-                var objects = EvaluatePrimarySelector(primarySelector);
+                var baseSelector = ParseBaseSelector(selector.Trim(), out var rangeSpecifier);
+                var objects = EvaluateBaseSelector(baseSelector);
                 results.AddRange(ApplyRangeSpecifier(objects, rangeSpecifier));
             }
             
             return results.Distinct();
         }
 
-        private string ParsePrimarySelector(string input, out string rangeSpecifier)
+        private string ParseBaseSelector(string input, out string rangeSpecifier)
         {
             rangeSpecifier = null;
             var parts = input.Split('#');
@@ -48,7 +48,7 @@ namespace Commandify
             return input;
         }
 
-        private IEnumerable<UnityEngine.Object> EvaluatePrimarySelector(string selector)
+        private IEnumerable<UnityEngine.Object> EvaluateBaseSelector(string selector)
         {
             if (string.IsNullOrEmpty(selector))
                 return Enumerable.Empty<UnityEngine.Object>();
@@ -102,7 +102,7 @@ namespace Commandify
             if (selector.Contains(":"))
             {
                 var parts = selector.Split(':');
-                var baseObjects = EvaluatePrimarySelector(parts[0]);
+                var baseObjects = EvaluateBaseSelector(parts[0]);
                 return FilterByComponent(baseObjects, parts[1]);
             }
 
@@ -110,8 +110,8 @@ namespace Commandify
             if (selector.Contains("&"))
             {
                 var parts = selector.Split('&');
-                var left = EvaluatePrimarySelector(parts[0]);
-                var right = EvaluatePrimarySelector(parts[1]);
+                var left = EvaluateBaseSelector(parts[0]);
+                var right = EvaluateBaseSelector(parts[1]);
                 return left.Intersect(right);
             }
 
@@ -119,8 +119,8 @@ namespace Commandify
             if (selector.Contains("|"))
             {
                 var parts = selector.Split('|');
-                var left = EvaluatePrimarySelector(parts[0]);
-                var right = EvaluatePrimarySelector(parts[1]);
+                var left = EvaluateBaseSelector(parts[0]);
+                var right = EvaluateBaseSelector(parts[1]);
                 return left.Union(right);
             }
 

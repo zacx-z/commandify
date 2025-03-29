@@ -105,39 +105,53 @@ exec --search "Assets/"  # Search menu items under Assets menu
 ```
 
 ## Selector Grammar
+
+A selector is used to identify and select objects in the Unity scene or project. The grammar is structured as follows:
+
+### Basic Structure
 ```
-selector:
-    primary-selector
-    primary-selector#range-specifier
-
-primary-selector:
-    path-notation
-    ^path-notation
-    $varname
-    @#tag
-    @@search
-    primary-selector:component-type
-    selector & selector
-    selector | selector
-
-path-notation:
-    path-notation/name-literal
-    path-notation/*
-    name-literal
-
-range-specifier:
-    integer
-    integer..integer
-    range-specifier,range-specifier
+selector = <base-selector> [#<range-specifier>]
 ```
 
-## Examples
-- Find asset: `Assets/path/to/asset`
-- Find in hierarchy: `^root/parent/child`
-- Find by tag: `@#MainCamera`
-- QuickSearch: `@@o: astroid`
-- First element: `<selector>#0`
-- Range selection: `<selector>#0..10`
-- Component filter: `<selector>:SpriteRenderer`
-- Intersection: `<selector>&<selector>`
-- Union: `<selector>|<selector>`
+### Base Selectors
+- `path` - Direct asset path (e.g., `Assets/Prefabs/Player`)
+- `^path` - Hierarchy path starting from root (e.g., `^Canvas/Panel/Button`)
+- `$varname` - Variable reference (e.g., `$selected`)
+- `@#tag` - Select by tag (e.g., `@#Player`)
+- `@@search` - QuickSearch query (e.g., `@@t:material`)
+- `@&instance-id` - Select by instance ID
+- `base-selector:component-type` - Filter by component (e.g., `^Player:Rigidbody`)
+
+### Combining Selectors
+- `selector & selector` - Intersection (objects matching both selectors)
+- `selector | selector` - Union (objects matching either selector)
+
+### Range Specifiers
+Range specifiers allow selecting specific items from the results:
+```
+range = single_number | range_expression | multiple_ranges
+- single_number: "0" selects first item
+- range_expression: "0..5" selects items 0 through 5
+- multiple_ranges: "0,2..5,7" combines individual selections
+```
+
+### Examples
+```bash
+# Basic selections
+Assets/Prefabs/Player      # Select asset by path
+^UI/MainMenu/PlayButton   # Select object in hierarchy
+@#Enemy                   # Select all with "Enemy" tag
+@@o:asteroid             # QuickSearch for asteroid objects
+
+# Component filtering
+^Player:Rigidbody        # Select Player's Rigidbody
+selected:MeshRenderer    # Filter selected objects by MeshRenderer
+
+# Range selection
+^Enemies#0              # Select first enemy
+^Enemies#0..3          # Select first four enemies
+^Items#0,2,4          # Select items at index 0, 2, and 4
+
+# Combined selections
+^Player:Rigidbody & @@t:physics  # Intersection of selections
+@#Enemy | @#Boss               # Select all enemies and bosses
