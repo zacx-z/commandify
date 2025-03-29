@@ -84,7 +84,7 @@ transform scale selected 2 2 2      # Double the size
 
 ### Variables
 - `set [--add | --sub] $<varname> <selector>` - Set variables
-- Built-in variable `$?` stores last command result
+- Built-in variable `$~` stores last command result (alternative output form)
 
 ### Editor Operations
 - `package list` - List installed packages

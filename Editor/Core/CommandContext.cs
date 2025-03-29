@@ -12,7 +12,7 @@ namespace Commandify
         public CommandContext()
         {
             variables = new Dictionary<string, object>();
-            variables["?"] = null; // Initialize the last result variable
+            variables["~"] = null; // Initialize the last result variable
         }
 
         public object GetVariable(string name)
@@ -75,17 +75,17 @@ namespace Commandify
         {
             var lastResult = GetLastResult();
             variables.Clear();
-            variables["?"] = lastResult; // Preserve the last result
+            variables["~"] = lastResult; // Preserve the last result
         }
 
         public void SetLastResult(object result)
         {
-            variables["?"] = result;
+            variables["~"] = result;
         }
 
         public object GetLastResult()
         {
-            return variables["?"];
+            return variables["~"];
         }
 
         public T GetLastResult<T>()
