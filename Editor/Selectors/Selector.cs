@@ -87,7 +87,7 @@ namespace Commandify
         {
             private readonly string input;
             private int position;
-            private Token? currentToken;
+            private Token currentToken;
 
             public Lexer(string input)
             {

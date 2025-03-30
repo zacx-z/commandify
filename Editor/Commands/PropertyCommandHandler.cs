@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Object = UnityEngine.Object;
 
 namespace Commandify
 {
@@ -74,11 +75,16 @@ namespace Commandify
 
             string propertyPath = context.ResolveStringReference(args[1]);
 
-            var values = new List<string>();
+            var values = new List<object>();
+            Type valueType = null;
             foreach (var obj in objects)
             {
                 var serializedObject = new SerializedObject(obj);
                 var property = serializedObject.FindProperty(propertyPath);
+                valueType = property.propertyType == SerializedPropertyType.ObjectReference
+                    || property.propertyType == SerializedPropertyType.ManagedReference
+                    || property.propertyType == SerializedPropertyType.ExposedReference
+                    ? typeof(Object) : typeof(string);
 
                 if (property == null)
                     throw new ArgumentException($"Property not found: {propertyPath}");
@@ -87,7 +93,7 @@ namespace Commandify
             }
 
             // Store the property values in the result variable
-            context.SetLastResult(values);
+            context.SetLastResult(valueType == typeof(string) ? values.Cast<string>().ToArray() : values.Cast<Object>().ToArray());
             return string.Join("\n", values);
         }
 
@@ -126,12 +132,12 @@ namespace Commandify
             return $"Set property on {count} object(s)";
         }
 
-        private string GetPropertyValue(SerializedProperty property)
+        private object GetPropertyValue(SerializedProperty property)
         {
             switch (property.propertyType)
             {
                 case SerializedPropertyType.Integer:
-                    return property.intValue.ToString();
+                    return property.intValue;
                 case SerializedPropertyType.Boolean:
                     return property.boolValue.ToString();
                 case SerializedPropertyType.Float:
@@ -151,7 +157,7 @@ namespace Commandify
                 case SerializedPropertyType.Enum:
                     return property.enumNames[property.enumValueIndex];
                 case SerializedPropertyType.ObjectReference:
-                    return property.objectReferenceValue?.name ?? "null";
+                    return property.objectReferenceValue;
                 default:
                     return $"[{property.propertyType}]";
             }
