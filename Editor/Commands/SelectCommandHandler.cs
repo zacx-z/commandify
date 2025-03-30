@@ -15,12 +15,12 @@ namespace Commandify
 
             bool additive = false;
             bool selectChildren = false;
-            string selector = null;
+            List<UnityEngine.Object> objects = null;
 
             // Parse arguments
             for (int i = 0; i < args.Count; i++)
             {
-                string arg = args[i];
+                string arg = context.ResolveStringReference(args[i]);
                 switch (arg)
                 {
                     case "--add":
@@ -30,17 +30,15 @@ namespace Commandify
                         selectChildren = true;
                         break;
                     default:
-                        if (selector == null)
-                            selector = arg;
+                        Debug.Log(args[i]);
+                        if (objects == null)
+                            objects = context.ResolveObjectReference(args[i]).ToList();
                         break;
                 }
             }
 
-            if (selector == null)
+            if (objects == null)
                 throw new ArgumentException("Selector required");
-
-            // Get objects using selector
-            var objects = context.ResolveObjectReference(selector).ToList();
 
             // Include children if requested
             if (selectChildren)

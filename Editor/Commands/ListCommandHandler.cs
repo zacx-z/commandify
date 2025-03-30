@@ -25,7 +25,6 @@ namespace Commandify
 
             bool showComponents = false;
             string filterPattern = null;
-            string selector = null;
             IEnumerable<Object> objects = null;
             var format = OutputFormat.Default;
 
@@ -33,9 +32,8 @@ namespace Commandify
             for (int i = 0; i < args.Count; i++)
             {
                 string arg = args[i];
-                (arg, objects) = (context.ResolveStringReference(arg), context.ResolveObjectReference(arg));
 
-                switch (arg)
+                switch (context.ResolveStringReference(arg))
                 {
                     case "--format":
                         if (++i < args.Count)
@@ -67,18 +65,13 @@ namespace Commandify
                             filterPattern = context.ResolveStringReference(args[i]);
                         break;
                     default:
-                        if (selector == null && arg != null)
-                            selector = arg;
+                        objects = context.ResolveObjectReference(arg);
                         break;
                 }
             }
 
             if (objects == null) {
-                if (selector == null)
-                    throw new ArgumentException("Selector required");
-
-                // Get objects using selector
-                objects = context.ResolveObjectReference(selector);
+                throw new ArgumentException("Selector required");
             }
 
             // Filter objects if pattern is specified

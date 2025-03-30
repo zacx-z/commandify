@@ -125,12 +125,15 @@ namespace Commandify
                         tokens.Add(new string(currentToken.ToArray()));
                         currentToken.Clear();
                     }
+                    currentToken.Add(c);
+                    currentToken.Add('(');
                     inSubCommand = true;
                     subCommandDepth = 1;
                     i++; // Skip the next '('
                 }
                 else if (inSubCommand)
                 {
+                    currentToken.Add(c);
                     if (c == '(')
                         subCommandDepth++;
                     else if (c == ')')

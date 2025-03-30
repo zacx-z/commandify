@@ -100,7 +100,7 @@ namespace Commandify
         {
             if (!reference.StartsWith("$(") || !reference.EndsWith(")"))
                 return null;
-                
+
             string command = reference.Substring(2, reference.Length - 3);
             CommandProcessor.Instance.ExecuteCommand(command);
             return ResolveReference("$~");
@@ -120,6 +120,8 @@ namespace Commandify
                     return objects;
                 if (value is UnityEngine.Object obj)
                     return new[] { obj };
+                if (value is string sel)
+                    return new Selector(sel, variables).Evaluate();
                 throw new ArgumentException($"Variable {reference} does not contain Unity objects");
             }
 
