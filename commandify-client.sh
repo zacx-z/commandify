@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Define colors
+CYAN=$'\e[0;36m'
+NC=$'\e[0m' # No Color
+
 # Enable command history
 HISTFILE="${XDG_DATA_HOME:-$HOME/.local/share}/commandify_history"
 HISTSIZE=1000
@@ -99,7 +103,7 @@ echo "----------------------------------------"
 # Main interaction loop
 while true; do
     # Use read with readline support for history and arrow keys
-    if ! read -e -p "commandify> " cmd; then
+    if ! read -e -p "${CYAN}commandify>${NC} " cmd; then
         # Handle Ctrl+D (EOF)
         echo -e "\nGoodbye!"
         exit 0
