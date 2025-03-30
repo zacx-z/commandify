@@ -25,14 +25,14 @@ namespace Commandify
         {
             var results = new List<UnityEngine.Object>();
             var selectors = selectorString.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            
+
             foreach (var selector in selectors)
             {
                 var baseSelector = ParseBaseSelector(selector.Trim(), out var rangeSpecifier);
                 var objects = EvaluateBaseSelector(baseSelector);
                 results.AddRange(ApplyRangeSpecifier(objects, rangeSpecifier));
             }
-            
+
             return results.Distinct();
         }
 
@@ -53,79 +53,250 @@ namespace Commandify
             if (string.IsNullOrEmpty(selector))
                 return Enumerable.Empty<UnityEngine.Object>();
 
-            // Handle variable reference
-            if (selector.StartsWith("$"))
+            var lexer = new Lexer(selector);
+            return ParseExpression(lexer);
+        }
+
+        private enum TokenType
+        {
+            Variable,        // $varname
+            InstanceId,      // @&id
+            Tag,            // @#tag
+            QuickSearch,    // @@query
+            HierarchyPath,  // ^path
+            ComponentType,  // :type
+            Union,         // |
+            Intersection,  // &
+            Text,         // any other text
+            EOF           // end of input
+        }
+
+        private class Token
+        {
+            public TokenType Type { get; }
+            public string Value { get; }
+
+            public Token(TokenType type, string value)
             {
-                string varName = selector.Substring(1);
-                if (variables.TryGetValue(varName, out object value))
+                Type = type;
+                Value = value;
+            }
+        }
+
+        private class Lexer
+        {
+            private readonly string input;
+            private int position;
+            private Token? currentToken;
+
+            public Lexer(string input)
+            {
+                this.input = input;
+                this.position = 0;
+                this.currentToken = null;
+            }
+
+            public Token Peek()
+            {
+                if (currentToken == null)
+                    currentToken = ReadNextToken();
+                return currentToken;
+            }
+
+            public Token Consume()
+            {
+                var token = Peek();
+                currentToken = null;
+                return token;
+            }
+
+            private Token ReadNextToken()
+            {
+                SkipWhitespace();
+
+                if (position >= input.Length)
+                    return new Token(TokenType.EOF, "");
+
+                char current = input[position];
+
+                // Handle special prefixes
+                if (current == '$')
                 {
-                    if (value is IEnumerable<UnityEngine.Object> objects)
-                        return objects;
-                    if (value is UnityEngine.Object obj)
-                        return new[] { obj };
+                    position++;
+                    return new Token(TokenType.Variable, ReadIdentifier());
                 }
-                return Enumerable.Empty<UnityEngine.Object>();
-            }
 
-            // Handle instance ID
-            if (selector.StartsWith("@&"))
-            {
-                string instanceIdStr = selector.Substring(2);
-                if (int.TryParse(instanceIdStr, out int instanceId))
+                if (current == '@')
                 {
-                    var obj = EditorUtility.InstanceIDToObject(instanceId);
-                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                    position++;
+                    if (position < input.Length)
+                    {
+                        char next = input[position];
+                        if (next == '&')
+                        {
+                            position++;
+                            return new Token(TokenType.InstanceId, ReadIdentifier());
+                        }
+                        if (next == '#')
+                        {
+                            position++;
+                            return new Token(TokenType.Tag, ReadIdentifier());
+                        }
+                        if (next == '@')
+                        {
+                            position++;
+                            return new Token(TokenType.QuickSearch, ReadUntilDelimiter());
+                        }
+                    }
+                    // Invalid @ prefix, treat as text
+                    position--;
+                    return new Token(TokenType.Text, ReadUntilDelimiter());
                 }
-                return Enumerable.Empty<UnityEngine.Object>();
+
+                if (current == '^')
+                {
+                    position++;
+                    return new Token(TokenType.HierarchyPath, ReadUntilDelimiter());
+                }
+
+                if (current == ':')
+                {
+                    position++;
+                    return new Token(TokenType.ComponentType, ReadIdentifier());
+                }
+
+                if (current == '|')
+                {
+                    position++;
+                    return new Token(TokenType.Union, "|");
+                }
+
+                if (current == '&')
+                {
+                    position++;
+                    return new Token(TokenType.Intersection, "&");
+                }
+
+                // Handle regular text
+                return new Token(TokenType.Text, ReadUntilDelimiter());
             }
 
-            // Handle hierarchy path
-            if (selector.StartsWith("^"))
+            private void SkipWhitespace()
             {
-                return FindInHierarchy(selector.Substring(1));
+                while (position < input.Length && char.IsWhiteSpace(input[position]))
+                    position++;
             }
 
-            // Handle tag
-            if (selector.StartsWith("@#"))
+            private string ReadIdentifier()
             {
-                string tag = selector.Substring(2);
-                return GameObject.FindGameObjectsWithTag(tag).Cast<UnityEngine.Object>();
+                var start = position;
+                while (position < input.Length && (char.IsLetterOrDigit(input[position]) || input[position] == '_'))
+                    position++;
+                return input.Substring(start, position - start);
             }
 
-            // Handle QuickSearch
-            if (selector.StartsWith("@@"))
+            private string ReadUntilDelimiter()
             {
-                return QuickSearch(selector.Substring(2)).Select(item => item.ToObject()).Where(obj => obj != null);
+                var start = position;
+                while (position < input.Length && !IsDelimiter(input[position]) && !char.IsWhiteSpace(input[position]))
+                    position++;
+                return input.Substring(start, position - start);
             }
 
-            // Handle component type filter
-            if (selector.Contains(":"))
+            private bool IsDelimiter(char c)
             {
-                var parts = selector.Split(':');
-                var baseObjects = EvaluateBaseSelector(parts[0]);
-                return FilterByComponent(baseObjects, parts[1]);
+                return c == ':' || c == '|' || c == '&';
             }
+        }
 
-            // Handle intersection
-            if (selector.Contains("&"))
+        private IEnumerable<UnityEngine.Object> ParseExpression(Lexer lexer)
+        {
+            var result = ParseTerm(lexer);
+
+            while (lexer.Peek().Type == TokenType.Union)
             {
-                var parts = selector.Split('&');
-                var left = EvaluateBaseSelector(parts[0]);
-                var right = EvaluateBaseSelector(parts[1]);
-                return left.Intersect(right);
+                lexer.Consume(); // consume the union operator
+                var right = ParseTerm(lexer);
+                result = result.Union(right);
             }
 
-            // Handle union
-            if (selector.Contains("|"))
+            return result;
+        }
+
+        private IEnumerable<UnityEngine.Object> ParseTerm(Lexer lexer)
+        {
+            var result = ParseFactor(lexer);
+
+            while (lexer.Peek().Type == TokenType.Intersection)
             {
-                var parts = selector.Split('|');
-                var left = EvaluateBaseSelector(parts[0]);
-                var right = EvaluateBaseSelector(parts[1]);
-                return left.Union(right);
+                lexer.Consume(); // consume the intersection operator
+                var right = ParseFactor(lexer);
+                result = result.Intersect(right);
             }
 
-            // Default to asset path
-            return FindAssets(selector);
+            return result;
+        }
+
+        private IEnumerable<UnityEngine.Object> ParseFactor(Lexer lexer)
+        {
+            var token = lexer.Consume();
+            IEnumerable<UnityEngine.Object> result;
+
+            switch (token.Type)
+            {
+                case TokenType.Variable:
+                    if (variables.TryGetValue(token.Value, out object value))
+                    {
+                        if (value is IEnumerable<UnityEngine.Object> objects)
+                            result = objects;
+                        else if (value is UnityEngine.Object obj)
+                            result = new[] { obj };
+                        else
+                            result = Enumerable.Empty<UnityEngine.Object>();
+                    }
+                    else
+                        result = Enumerable.Empty<UnityEngine.Object>();
+                    break;
+
+                case TokenType.InstanceId:
+                    if (int.TryParse(token.Value, out int instanceId))
+                    {
+                        var obj = EditorUtility.InstanceIDToObject(instanceId);
+                        result = obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                    }
+                    else
+                        result = Enumerable.Empty<UnityEngine.Object>();
+                    break;
+
+                case TokenType.Tag:
+                    result = GameObject.FindGameObjectsWithTag(token.Value).Cast<UnityEngine.Object>();
+                    break;
+
+                case TokenType.QuickSearch:
+                    result = QuickSearch(token.Value).Select(item => item.ToObject()).Where(obj => obj != null);
+                    break;
+
+                case TokenType.HierarchyPath:
+                    result = FindInHierarchy(token.Value);
+                    break;
+
+                case TokenType.Text:
+                    result = FindAssets(token.Value);
+                    break;
+
+                default:
+                    result = Enumerable.Empty<UnityEngine.Object>();
+                    break;
+            }
+
+            // Handle component type filters
+            while (lexer.Peek().Type == TokenType.ComponentType)
+            {
+                var componentToken = lexer.Consume();
+                result = SelectComponent(result, componentToken.Value);
+            }
+
+            return result;
         }
 
         private IEnumerable<UnityEngine.Object> FindInHierarchy(string path)
@@ -275,7 +446,7 @@ namespace Commandify
             return items;
         }
 
-        private IEnumerable<UnityEngine.Object> FilterByComponent(IEnumerable<UnityEngine.Object> objects, string componentType)
+        private IEnumerable<UnityEngine.Object> SelectComponent(IEnumerable<UnityEngine.Object> objects, string componentType)
         {
             var type = TypeCache.GetTypesDerivedFrom<Component>()
                 .FirstOrDefault(t => t.Name.Equals(componentType, StringComparison.OrdinalIgnoreCase));

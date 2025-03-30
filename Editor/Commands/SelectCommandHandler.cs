@@ -30,7 +30,6 @@ namespace Commandify
                         selectChildren = true;
                         break;
                     default:
-                        Debug.Log(args[i]);
                         if (objects == null)
                             objects = context.ResolveObjectReference(args[i]).ToList();
                         break;
