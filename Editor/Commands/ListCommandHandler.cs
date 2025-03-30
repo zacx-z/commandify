@@ -10,12 +10,11 @@ namespace Commandify
 {
     public class ListCommandHandler : ICommandHandler
     {
-        private enum OutputFormat
+        public enum OutputFormat
         {
             Default,
             InstanceId,
-            Path,
-            Full
+            Path
         }
 
         public string Execute(List<string> args, CommandContext context)
@@ -47,9 +46,6 @@ namespace Commandify
                                     break;
                                 case "path":
                                     format = OutputFormat.Path;
-                                    break;
-                                case "full":
-                                    format = OutputFormat.Full;
                                     break;
                                 default:
                                     format = OutputFormat.Default;
@@ -84,25 +80,13 @@ namespace Commandify
             var results = new List<string>();
             foreach (var obj in objects)
             {
-                string info;
-                if (format == OutputFormat.InstanceId)
+                string info = ObjectFormatter.FormatObject(obj, format);
+                if (showComponents && obj is GameObject go)
                 {
-                    info = $"@&{obj.GetInstanceID()}";
-                }
-                else if (obj is GameObject go)
-                {
-                    info = format == OutputFormat.Path || format == OutputFormat.Full ? GetObjectPath(go) : go.name;
-                    if ((showComponents || format == OutputFormat.Full) && go != null)
-                    {
-                        var components = go.GetComponents<Component>()
-                            .Where(c => c != null)
-                            .Select(c => c.GetType().Name);
-                        info += $" [{string.Join(", ", components)}]";
-                    }
-                }
-                else
-                {
-                    info = obj.name;
+                    var components = go.GetComponents<Component>()
+                        .Where(c => c != null)
+                        .Select(c => c.GetType().Name);
+                    info += $" [{string.Join(", ", components)}]";
                 }
                 results.Add(info);
             }
@@ -113,18 +97,6 @@ namespace Commandify
             // Store the found objects in the result variable
             context.SetLastResult(objects);
             return string.Join("\n", results.OrderBy(r => r));
-        }
-
-        private string GetObjectPath(GameObject obj)
-        {
-            string path = obj.name;
-            var parent = obj.transform.parent;
-            while (parent != null)
-            {
-                path = $"{parent.name}/{path}";
-                parent = parent.parent;
-            }
-            return path;
         }
 
         private string WildcardToRegex(string pattern)

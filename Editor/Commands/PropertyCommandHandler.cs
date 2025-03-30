@@ -64,10 +64,38 @@ namespace Commandify
             return string.Join("\n", properties);
         }
 
+        private ListCommandHandler.OutputFormat format = ListCommandHandler.OutputFormat.Default;
+
         private string GetProperty(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Object selector and property path required");
+
+            // Parse format option
+            for (int i = 0; i < args.Count; i++)
+            {
+                string arg = context.ResolveStringReference(args[i]);
+                if (arg == "--format" && ++i < args.Count)
+                {
+                    string formatStr = context.ResolveStringReference(args[i]).ToLower();
+                    args.RemoveRange(i - 1, 2);
+                    i -= 2;
+                    
+                    switch (formatStr)
+                    {
+                        case "instance-id":
+                        case "instanceid":
+                            format = ListCommandHandler.OutputFormat.InstanceId;
+                            break;
+                        case "path":
+                            format = ListCommandHandler.OutputFormat.Path;
+                            break;
+                        default:
+                            format = ListCommandHandler.OutputFormat.Default;
+                            break;
+                    }
+                }
+            }
 
             var objects = context.ResolveObjectReference(args[0]).ToList();
             if (!objects.Any())
@@ -89,11 +117,23 @@ namespace Commandify
                 if (property == null)
                     throw new ArgumentException($"Property not found: {propertyPath}");
 
-                values.Add(GetPropertyValue(property));
+                var value = GetPropertyValue(property);
+                values.Add(value);
             }
 
             // Store the property values in the result variable
             context.SetLastResult(valueType == typeof(string) ? values.Cast<string>().ToArray() : values.Cast<Object>().ToArray());
+            
+            // Format object references according to the specified format
+            for (int i = 0; i < values.Count; i++)
+            {
+                var value = values[i];
+                if (value is Object unityObj)
+                {
+                    values[i] = ObjectFormatter.FormatObject(unityObj, format);
+                }
+            }
+
             return string.Join("\n", values);
         }
 
