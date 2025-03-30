@@ -1,11 +1,12 @@
 using UnityEngine;
+using UnityEditor;
 using System.Text;
 
 namespace Commandify
 {
     public static class ObjectFormatter
     {
-        public static string GetObjectPath(GameObject obj)
+        public static string GetObjectHierarchyPath(GameObject obj)
         {
             var path = new StringBuilder(obj.name);
             var current = obj.transform.parent;
@@ -28,10 +29,22 @@ namespace Commandify
             }
             else if (obj is GameObject go)
             {
-                return format == ListCommandHandler.OutputFormat.Path ? GetObjectPath(go) : go.name;
+                if (format == ListCommandHandler.OutputFormat.Path)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(go);
+                    if (!string.IsNullOrEmpty(assetPath))
+                        return assetPath;
+                    return "^" + GetObjectHierarchyPath(go);
+                }
+                return go.name;
             }
             else
             {
+                if (format == ListCommandHandler.OutputFormat.Path)
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(obj);
+                    return string.IsNullOrEmpty(assetPath) ? obj.name : assetPath;
+                }
                 return obj.name;
             }
         }
