@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Object = UnityEngine.Object;
 
 namespace Commandify
 {
@@ -25,13 +26,14 @@ namespace Commandify
             bool showComponents = false;
             string filterPattern = null;
             string selector = null;
+            IEnumerable<Object> objects = null;
             var format = OutputFormat.Default;
 
             // Parse arguments
             for (int i = 0; i < args.Count; i++)
             {
                 string arg = args[i];
-                arg = context.ResolveStringReference(arg);
+                (arg, objects) = (context.ResolveStringReference(arg), context.ResolveObjectReference(arg));
 
                 switch (arg)
                 {
@@ -65,17 +67,19 @@ namespace Commandify
                             filterPattern = context.ResolveStringReference(args[i]);
                         break;
                     default:
-                        if (selector == null)
+                        if (selector == null && arg != null)
                             selector = arg;
                         break;
                 }
             }
 
-            if (selector == null)
-                throw new ArgumentException("Selector required");
+            if (objects == null) {
+                if (selector == null)
+                    throw new ArgumentException("Selector required");
 
-            // Get objects using selector
-            var objects = context.ResolveObjectReference(selector);
+                // Get objects using selector
+                objects = context.ResolveObjectReference(selector);
+            }
 
             // Filter objects if pattern is specified
             if (!string.IsNullOrEmpty(filterPattern))
