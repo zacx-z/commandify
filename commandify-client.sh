@@ -9,9 +9,12 @@ HISTFILE="${XDG_DATA_HOME:-$HOME/.local/share}/commandify_history"
 HISTSIZE=1000
 HISTFILESIZE=2000
 
+shopt -s histappend
+
 # Create history directory if it doesn't exist
 mkdir -p "$(dirname "$HISTFILE")"
 touch "$HISTFILE"
+history -r
 
 PORT=12345
 HOST=localhost
@@ -106,6 +109,7 @@ while true; do
     if ! read -e -p "${CYAN}commandify>${NC} " cmd; then
         # Handle Ctrl+D (EOF)
         echo -e "\nGoodbye!"
+        history -w
         exit 0
     fi
 
@@ -117,6 +121,7 @@ while true; do
     # Check for exit command
     if [[ "$cmd" == "exit" ]]; then
         echo "Goodbye!"
+        history -w
         exit 0
     fi
 
