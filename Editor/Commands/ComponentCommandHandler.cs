@@ -27,10 +27,37 @@ namespace Commandify
             }
         }
 
+        private ObjectFormatter.OutputFormat format = ObjectFormatter.OutputFormat.Default;
+
         private string ListComponents(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Object selector required");
+
+            // Parse format option
+            for (int i = 0; i < args.Count; i++)
+            {
+                string arg = context.ResolveStringReference(args[i]);
+                if (arg == "--format" && ++i < args.Count)
+                {
+                    string formatStr = context.ResolveStringReference(args[i]).ToLower();
+                    args.RemoveRange(i - 1, 2);
+                    i -= 2;
+
+                    switch (formatStr)
+                    {
+                        case "path":
+                            format = ObjectFormatter.OutputFormat.Path;
+                            break;
+                        case "instance-id":
+                        case "instanceid":
+                            format = ObjectFormatter.OutputFormat.InstanceId;
+                            break;
+                        default:
+                            throw new ArgumentException("Format must be either 'path' or 'instance-id'");
+                    }
+                }
+            }
 
             var objects = context.ResolveObjectReference(args[0]);
             var components = new List<string>();
@@ -41,7 +68,7 @@ namespace Commandify
                 {
                     var objComponents = go.GetComponents<Component>()
                         .Where(c => c != null)
-                        .Select(c => $"{go.name}: {c.GetType().Name}");
+                        .Select(c => $"{ObjectFormatter.FormatObject(go, format)}: {c.GetType().Name}");
                     components.AddRange(objComponents);
                 }
             }

@@ -64,7 +64,7 @@ namespace Commandify
             return string.Join("\n", properties);
         }
 
-        private ListCommandHandler.OutputFormat format = ListCommandHandler.OutputFormat.Default;
+        private ObjectFormatter.OutputFormat format = ObjectFormatter.OutputFormat.Default;
 
         private string GetProperty(List<string> args, CommandContext context)
         {
@@ -85,13 +85,13 @@ namespace Commandify
                     {
                         case "instance-id":
                         case "instanceid":
-                            format = ListCommandHandler.OutputFormat.InstanceId;
+                            format = ObjectFormatter.OutputFormat.InstanceId;
                             break;
                         case "path":
-                            format = ListCommandHandler.OutputFormat.Path;
+                            format = ObjectFormatter.OutputFormat.Path;
                             break;
                         default:
-                            format = ListCommandHandler.OutputFormat.Default;
+                            format = ObjectFormatter.OutputFormat.Default;
                             break;
                     }
                 }

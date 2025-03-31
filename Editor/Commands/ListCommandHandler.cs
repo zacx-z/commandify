@@ -10,13 +10,6 @@ namespace Commandify
 {
     public class ListCommandHandler : ICommandHandler
     {
-        public enum OutputFormat
-        {
-            Default,
-            InstanceId,
-            Path
-        }
-
         public string Execute(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
@@ -25,7 +18,7 @@ namespace Commandify
             bool showComponents = false;
             string filterPattern = null;
             IEnumerable<Object> objects = null;
-            var format = OutputFormat.Default;
+            var format = ObjectFormatter.OutputFormat.Default;
 
             // Parse arguments
             for (int i = 0; i < args.Count; i++)
@@ -42,13 +35,13 @@ namespace Commandify
                             {
                                 case "instance-id":
                                 case "instanceid":
-                                    format = OutputFormat.InstanceId;
+                                    format = ObjectFormatter.OutputFormat.InstanceId;
                                     break;
                                 case "path":
-                                    format = OutputFormat.Path;
+                                    format = ObjectFormatter.OutputFormat.Path;
                                     break;
                                 default:
-                                    format = OutputFormat.Default;
+                                    format = ObjectFormatter.OutputFormat.Default;
                                     break;
                             }
                         }
