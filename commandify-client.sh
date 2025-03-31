@@ -105,13 +105,17 @@ echo "----------------------------------------"
 
 # Main interaction loop
 while true; do
+    echo -n $CYAN
+
     # Use read with readline support for history and arrow keys
-    if ! read -e -p "${CYAN}commandify>${NC} " cmd; then
+    if ! read -e -p "commandify> " cmd; then
         # Handle Ctrl+D (EOF)
-        echo -e "\nGoodbye!"
+        echo -e "${NC}\nGoodbye!"
         history -w
         exit 0
     fi
+
+    echo -n $NC
 
     # Add command to history if non-empty
     if [[ -n "$cmd" ]]; then
