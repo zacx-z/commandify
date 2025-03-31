@@ -273,7 +273,13 @@ namespace Commandify
                     break;
 
                 case TokenType.QuickSearch:
-                    result = QuickSearch(token.Value).Select(item => item.ToObject()).Where(obj => obj != null);
+                    var query = token.Value;
+                    while (lexer.Peek().Type == TokenType.ComponentType || lexer.Peek().Type == TokenType.Text)
+                    {
+                        token = lexer.Consume();
+                        query += token.Type == TokenType.ComponentType ? ":" + token.Value : token.Value;
+                    }
+                    result = QuickSearch(query).Select(item => item.ToObject()).Where(obj => obj != null);
                     break;
 
                 case TokenType.HierarchyPath:
