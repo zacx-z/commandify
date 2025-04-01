@@ -29,62 +29,45 @@ namespace Commandify
 
         private string InstantiatePrefab(List<string> args, CommandContext context)
         {
-            if (args.Count == 0)
-                throw new ArgumentException("Prefab path or reference required");
+            if (args.Count != 2)
+                throw new ArgumentException("Usage: prefab instantiate <selector> <hierarchy-path>");
 
-            GameObject prefab;
-            string prefabPath = args[0];
+            string selector = args[0];
+            string hierarchyPath = args[1];
 
-            // Handle variable reference
-            if (prefabPath.StartsWith("$"))
-            {
-                var value = context.ResolveReference(prefabPath);
-                if (value is GameObject go)
-                    prefab = go;
-                else if (value is string path)
-                    prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                else
-                    throw new ArgumentException($"Variable {prefabPath} does not contain a prefab or valid path");
-            }
-            else
-            {
-                prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            }
+            var selectedObjects = context.ResolveObjectReference(selector).ToArray();
+            if (selectedObjects.Length == 0)
+                throw new ArgumentException($"No objects found matching selector: {selector}");
 
-            if (prefab == null)
-                throw new ArgumentException($"Prefab not found: {prefabPath}");
+            var firstObject = selectedObjects[0];
+            if (!PrefabUtility.IsPartOfPrefabAsset(firstObject))
+                throw new ArgumentException($"Selected object is not a prefab: {firstObject.name}");
 
-            // Get parent if specified
+            // Create parent hierarchy if needed
+            var parentPath = System.IO.Path.GetDirectoryName(hierarchyPath)?.Replace('\\', '/');
+            var objectName = System.IO.Path.GetFileName(hierarchyPath);
+            
             Transform parent = null;
-            if (args.Count > 1)
+            if (!string.IsNullOrEmpty(parentPath))
             {
-                var parentObjects = context.ResolveObjectReference(args[1]);
-                var firstParent = parentObjects.FirstOrDefault();
-                if (firstParent != null)
-                {
-                    parent = firstParent is GameObject go ? go.transform :
-                            firstParent is Component comp ? comp.transform : null;
-                }
+                var parentObject = GameObject.Find(parentPath);
+                if (parentObject == null)
+                    throw new ArgumentException($"Parent path not found: {parentPath}");
+                parent = parentObject.transform;
             }
 
-            // Instantiate the prefab
-            var instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-            if (instance != null)
-            {
-                Undo.RegisterCreatedObjectUndo(instance, "Instantiate Prefab");
-                
-                if (parent != null)
-                {
-                    instance.transform.SetParent(parent, false);
-                    instance.transform.localPosition = Vector3.zero;
-                    instance.transform.localRotation = Quaternion.identity;
-                    instance.transform.localScale = Vector3.one;
-                }
-            }
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(firstObject);
+            if (instance == null)
+                throw new Exception($"Failed to instantiate prefab: {firstObject.name}");
 
-            // Store the instance in the result
-            context.SetLastResult(instance);
-            return $"Instantiated prefab: {instance.name}";
+            instance.name = objectName;
+            if (parent != null)
+                instance.transform.SetParent(parent, false);
+
+            Undo.RegisterCreatedObjectUndo(instance, "Instantiate Prefab");
+            Selection.activeObject = instance;
+
+            return $"Instantiated prefab {firstObject.name} at {hierarchyPath}";
         }
 
         private string CreatePrefab(List<string> args, CommandContext context)

@@ -45,7 +45,7 @@ echo "scene list --all" | nc localhost 12345
 - `asset create-types` - List available asset types
 
 ### Prefab Operations
-- `prefab instantiate <hierarchy-path>` - Instantiate prefab
+- `prefab instantiate <selector> <hierarchy-path>` - Instantiate first prefab from selector at the specified hierarchy path
 - `prefab create [--variant] <selector> <path>` - Create prefab
 
 ### View Operations
