@@ -38,6 +38,26 @@ echo "scene list --all" | nc localhost 12345
 - `scene unload <scene-specifier>...` - Unload specified scenes
 - `scene activate <scene-specifier>` - Set active scene
 
+### GameObject Creation
+- `create [name] [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]` - Create a GameObject
+  - `name`: Optional name for the GameObject (default: "GameObject")
+  - `--parent`: Optional hierarchy path to parent the new object under
+  - `--with`: Optional comma-separated list of components to add
+  - `--prefab`: Optional prefab selector to create the object inside a prefab
+
+Examples:
+```bash
+# Create basic GameObjects
+create MyObject                                      # Create empty GameObject named "MyObject"
+create Player --parent World                         # Create as child of "World" object
+create Camera --with Camera,AudioListener            # Create with components
+create Enemy --parent World/Enemies --with Rigidbody,BoxCollider,MeshRenderer # Create with parent and components
+
+# Create inside prefabs
+create Button --prefab UI/MenuPrefab --parent Panel  # Create GameObject inside MenuPrefab under Panel
+create Icon --prefab UI/ButtonPrefab --with Image    # Create GameObject with Image component in ButtonPrefab
+```
+
 ### Asset Operations
 - `asset list [--filter <filterspec> | --recursive] <path>` - List assets
 - `asset create <type> <path>` - Create a new asset

@@ -26,6 +26,7 @@ namespace Commandify
             handlers = new Dictionary<string, ICommandHandler>
             {
                 { "scene", new SceneCommandHandler() },
+                { "create", new CreateCommandHandler() },
                 { "asset", new AssetCommandHandler() },
                 { "prefab", new PrefabCommandHandler() },
                 { "list", new ListCommandHandler() },
