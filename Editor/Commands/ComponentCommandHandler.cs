@@ -3,6 +3,7 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Commandify
 {
@@ -22,6 +23,8 @@ namespace Commandify
                     return ListComponents(subArgs, context);
                 case "add":
                     return AddComponent(subArgs, context);
+                case "search":
+                    return SearchComponents(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown component subcommand: {subCommand}");
             }
@@ -134,6 +137,88 @@ namespace Commandify
             }
 
             return null;
+        }
+
+        private string SearchComponents(List<string> args, CommandContext context)
+        {
+            if (args.Count == 0)
+                throw new ArgumentException("Search pattern required");
+
+            string pattern = null;
+            Type baseType = typeof(Component);
+
+            // Parse arguments
+            for (int i = 0; i < args.Count; i++)
+            {
+                string arg = context.ResolveStringReference(args[i]);
+                if (arg == "--base" && ++i < args.Count)
+                {
+                    string baseTypeName = context.ResolveStringReference(args[i]);
+                    Type resolvedType = ResolveComponentType(baseTypeName);
+                    if (resolvedType == null)
+                        throw new ArgumentException($"Base type not found: {baseTypeName}");
+                    if (!typeof(Component).IsAssignableFrom(resolvedType))
+                        throw new ArgumentException($"Base type must inherit from Component: {baseTypeName}");
+                    baseType = resolvedType;
+                }
+                else if (pattern == null)
+                {
+                    pattern = arg;
+                }
+                else
+                {
+                    throw new ArgumentException($"Unexpected argument: {arg}");
+                }
+            }
+
+            if (pattern == null)
+                throw new ArgumentException("Search pattern required");
+
+            var componentTypes = TypeCache.GetTypesDerivedFrom(baseType);
+            var matchingTypes = componentTypes.Where(t => WildcardMatch(t.FullName, pattern))
+                                           .OrderBy(t => t.FullName);
+
+            if (!matchingTypes.Any())
+                return "No components found matching the pattern.";
+
+            return string.Join("\n", matchingTypes.Select(t => t.FullName));
+        }
+
+        private Type ResolveComponentType(string typeName)
+        {
+            // Try exact name first
+            var type = Type.GetType(typeName);
+            if (type != null && typeof(Component).IsAssignableFrom(type))
+                return type;
+
+            // Try Unity namespace
+            type = Type.GetType($"UnityEngine.{typeName}");
+            if (type != null && typeof(Component).IsAssignableFrom(type))
+                return type;
+
+            // Try all loaded assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = assembly.GetType(typeName) ?? 
+                       assembly.GetType($"UnityEngine.{typeName}");
+                
+                if (type != null && typeof(Component).IsAssignableFrom(type))
+                    return type;
+            }
+
+            return null;
+        }
+
+        private bool WildcardMatch(string text, string pattern)
+        {
+            if (string.IsNullOrEmpty(pattern)) return false;
+            if (pattern == "*") return true;
+
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                text ?? "", 
+                "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
         }
     }
 }

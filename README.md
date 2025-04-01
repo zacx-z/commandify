@@ -61,7 +61,21 @@ echo "scene list --all" | nc localhost 12345
 - `select [--add] [--children] <selector>` - Select objects
 - `property <command> <selector> [<args>]` - Manage object properties
 - `component <command> <selector> [<args>]` - Manage components
+  - `list <selector>` - List components on objects
+  - `add <selector> <type>` - Add component to objects
+  - `search <pattern> [--base <type>]` - Search for component types by name pattern
+    - `pattern`: Wildcard pattern matching component type names (including namespace)
+    - `--base`: Optional base type to filter results (e.g., Collider, UI.Selectable)
 - `transform <command> <selector> [<args>]` - Transform operations
+
+Examples:
+```bash
+# Search for components
+component search "*"                      # List all components
+component search "UnityEngine.UI.*"       # List all UI components
+component search "*Collider*"             # List all collider-related components
+component search "*" --base Collider      # List all components inheriting from Collider
+```
 
 ### Transform Operations
 - `transform translate <selector> [<x> <y> <z>]` - Translate objects or show current positions
