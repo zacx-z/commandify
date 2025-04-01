@@ -103,7 +103,7 @@ namespace Commandify
                 if (obj is GameObject go)
                 {
                     Undo.RecordObject(go, "Add Component");
-                    var component = go.AddComponent(type);
+                    var component = Undo.AddComponent(go, type);
                     if (component != null)
                         addedComponents.Add(component);
                 }
