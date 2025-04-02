@@ -87,6 +87,7 @@ namespace Commandify
             if (prefab == null)
                 throw new Exception("Failed to create prefab");
 
+            context.SetLastResult(prefab);
             return $"Created prefab at {path}";
         }
     }

@@ -184,6 +184,7 @@ namespace Commandify
             }
 
             Selection.activeGameObject = obj;
+            context.SetLastResult(obj);
             return $"Created {obj.name}";
         }
 
