@@ -328,6 +328,49 @@ namespace Commandify
         {
             if (!path.Contains("*") && !path.Contains("?"))
             {
+                if (path.StartsWith("BuiltinResources/"))
+                {
+                    path = path.Substring(17);
+                    if (type != null)
+                    {
+                        var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
+                            .Append(typeof(UnityEngine.Object))
+                            .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
+                        if (targetType != null)
+                        {
+                            var asset = Resources.GetBuiltinResource(targetType, path);
+                            return asset != null ? new[] { asset } : Enumerable.Empty<UnityEngine.Object>();
+                        }
+                        return Enumerable.Empty<UnityEngine.Object>();
+                    }
+                    else
+                    {
+                        var asset = Resources.GetBuiltinResource(typeof(UnityEngine.Object), path);
+                        return asset != null ? new[] { asset } : Enumerable.Empty<UnityEngine.Object>();
+                    }
+                }
+
+                if (path.StartsWith("BuiltinExtra/")) {
+                    path = path.Substring(13);
+                    if (type != null)
+                    {
+                        var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
+                            .Append(typeof(UnityEngine.Object))
+                            .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
+                        if (targetType != null)
+                        {
+                            var asset = AssetDatabase.GetBuiltinExtraResource(targetType, path);
+                            return asset != null ? new[] { asset } : Enumerable.Empty<UnityEngine.Object>();
+                        }
+                        return Enumerable.Empty<UnityEngine.Object>();
+                    }
+                    else
+                    {
+                        var asset = AssetDatabase.GetBuiltinExtraResource<UnityEngine.Object>(path);
+                        return asset != null ? new[] { asset } : Enumerable.Empty<UnityEngine.Object>();
+                    }
+                }
+
                 if (type != null)
                 {
                     // If type is specified, load all assets at path
