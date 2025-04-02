@@ -3,7 +3,6 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Object = UnityEngine.Object;
 
 namespace Commandify
@@ -153,6 +152,7 @@ namespace Commandify
             foreach (var obj in objects)
             {
                 var serializedObject = new SerializedObject(obj);
+                UnityEngine.Debug.Log(propertyPath);
                 var property = serializedObject.FindProperty(propertyPath);
 
                 if (property == null)
@@ -160,7 +160,7 @@ namespace Commandify
 
                 Undo.RecordObject(obj, "Set Property");
 
-                if (SetPropertyValue(property, value))
+                if (SetPropertyValue(property, value, context))
                 {
                     serializedObject.ApplyModifiedProperties();
                     count++;
@@ -203,7 +203,7 @@ namespace Commandify
             }
         }
 
-        private bool SetPropertyValue(SerializedProperty property, string value)
+        private bool SetPropertyValue(SerializedProperty property, string value, CommandContext context)
         {
             try
             {
@@ -245,6 +245,19 @@ namespace Commandify
                         int enumIndex = Array.IndexOf(property.enumNames, value);
                         if (enumIndex >= 0)
                             property.enumValueIndex = enumIndex;
+                        break;
+                    case SerializedPropertyType.ObjectReference:
+                        try
+                        {
+                            var resolvedObjects = context.ResolveObjectReference(value).ToList();
+                            if (!resolvedObjects.Any())
+                                throw new ArgumentException($"No objects found for reference: {value}");
+                            property.objectReferenceValue = resolvedObjects.First();
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ArgumentException($"Failed to set object reference: {ex.Message}");
+                        }
                         break;
                     default:
                         return false;
