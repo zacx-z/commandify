@@ -65,6 +65,7 @@ namespace Commandify
             QuickSearch,    // @@query
             HierarchyPath,  // ^path
             ComponentType,  // :type
+            TypeSpecifier,  // ::
             Union,         // |
             Intersection,  // &
             Text,         // any other text
@@ -162,6 +163,11 @@ namespace Commandify
                 if (current == ':')
                 {
                     position++;
+                    if (position < input.Length && input[position] == ':')
+                    {
+                        position++;
+                        return new Token(TokenType.TypeSpecifier, "::");
+                    }
                     return new Token(TokenType.ComponentType, ReadIdentifier());
                 }
 
@@ -287,7 +293,20 @@ namespace Commandify
                     break;
 
                 case TokenType.Text:
-                    result = FindAssets(token.Value);
+                    var path = token.Value;
+                    string type = null;
+
+                    // Check for type specifier
+                    if (lexer.Peek().Type == TokenType.TypeSpecifier)
+                    {
+                        lexer.Consume(); // consume ::
+                        if (lexer.Peek().Type == TokenType.Text)
+                        {
+                            type = lexer.Consume().Value;
+                        }
+                    }
+
+                    result = FindAssets(path, type);
                     break;
 
                 default:
@@ -303,6 +322,61 @@ namespace Commandify
             }
 
             return result;
+        }
+
+        private IEnumerable<UnityEngine.Object> FindAssets(string path, string type = null)
+        {
+            string fullPath = path.StartsWith("Assets/") ? path : "Assets/" + path;
+
+            if (!fullPath.Contains("*") && !fullPath.Contains("?"))
+            {
+                if (System.IO.File.Exists(fullPath))
+                {
+                    if (type != null)
+                    {
+                        // If type is specified, load all assets at path
+                        var allAssets = AssetDatabase.LoadAllAssetsAtPath(fullPath);
+                        var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
+                            .Append(typeof(UnityEngine.Object))
+                            .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
+                        if (targetType != null)
+                            return allAssets.Where(a => a != null && targetType.IsInstanceOfType(a));
+                        return Enumerable.Empty<UnityEngine.Object>();
+                    }
+                    else
+                    {
+                        var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(fullPath);
+                        return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                    }
+                }
+                return Enumerable.Empty<UnityEngine.Object>();
+            }
+
+            var files = SearchFiles(fullPath);
+            var assets = files.SelectMany(f => 
+            {
+                if (type != null)
+                {
+                    // If type is specified, load all assets at path
+                    return AssetDatabase.LoadAllAssetsAtPath(f);
+                }
+                else
+                {
+                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(f);
+                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
+                }
+            }).Where(obj => obj != null);
+
+            if (type != null)
+            {
+                var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
+                    .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
+                if (targetType != null)
+                    return assets.Where(a => targetType.IsInstanceOfType(a));
+                return Enumerable.Empty<UnityEngine.Object>();
+            }
+
+            return assets;
         }
 
         private IEnumerable<UnityEngine.Object> FindInHierarchy(string path)
@@ -362,25 +436,6 @@ namespace Commandify
                     yield return (Transform)child;
                 }
             }
-        }
-
-        private IEnumerable<UnityEngine.Object> FindAssets(string path)
-        {
-            string fullPath = path.StartsWith("Assets/") ? path : "Assets/" + path;
-
-            if (!fullPath.Contains("*") && !fullPath.Contains("?"))
-            {
-                if (System.IO.File.Exists(fullPath))
-                {
-                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(fullPath);
-                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
-                }
-                return Enumerable.Empty<UnityEngine.Object>();
-            }
-
-            var files = SearchFiles(fullPath);
-            return files.Select(f => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(f))
-                .Where(obj => obj != null);
         }
 
         private IEnumerable<string> SearchFiles(string pattern)

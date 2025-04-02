@@ -151,7 +151,7 @@ A selector is used to identify and select objects in the Unity scene or project.
 
 ### Basic Structure
 ```
-selector = <base-selector> [#<range-specifier>]
+selector = <base-selector>[::<type-specifier>][#<range-specifier>]
 ```
 
 ### Base Selectors
@@ -162,6 +162,13 @@ selector = <base-selector> [#<range-specifier>]
 - `@@search` - QuickSearch query (e.g., `@@t:material`)
 - `@&instance-id` - Select by instance ID
 - `base-selector:component-type` - Filter by component (e.g., `^Player:Rigidbody`)
+
+### Type Specifiers
+Type specifiers allow filtering results by type and loading all assets at a path:
+```
+Assets/MyMaterial.mat::Material  # Load all assets at path and filter for Material type
+Assets/Textures/*::Texture      # Load all textures from directory
+```
 
 ### Combining Selectors
 - `selector & selector` - Intersection (objects matching both selectors)
