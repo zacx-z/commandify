@@ -93,7 +93,7 @@ namespace Commandify
             string componentType = args[1];
             componentType = context.ResolveStringReference(componentType);
 
-            var type = GetComponentType(componentType);
+            var type = TypeUtility.FindType(componentType);
             if (type == null)
                 throw new ArgumentException($"Component type not found: {componentType}");
 
@@ -114,31 +114,6 @@ namespace Commandify
             return $"Added {addedComponents.Count} {componentType} component(s)";
         }
 
-        private Type GetComponentType(string typeName)
-        {
-            // Try exact name first
-            var type = Type.GetType(typeName);
-            if (type != null && typeof(Component).IsAssignableFrom(type))
-                return type;
-
-            // Try Unity namespace
-            type = Type.GetType($"UnityEngine.{typeName}");
-            if (type != null && typeof(Component).IsAssignableFrom(type))
-                return type;
-
-            // Try all loaded assemblies
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                type = assembly.GetType(typeName) ?? 
-                       assembly.GetType($"UnityEngine.{typeName}");
-                
-                if (type != null && typeof(Component).IsAssignableFrom(type))
-                    return type;
-            }
-
-            return null;
-        }
-
         private string SearchComponents(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
@@ -154,11 +129,9 @@ namespace Commandify
                 if (arg == "--base" && ++i < args.Count)
                 {
                     string baseTypeName = context.ResolveStringReference(args[i]);
-                    Type resolvedType = ResolveComponentType(baseTypeName);
+                    Type resolvedType = TypeUtility.FindType(baseTypeName);
                     if (resolvedType == null)
                         throw new ArgumentException($"Base type not found: {baseTypeName}");
-                    if (!typeof(Component).IsAssignableFrom(resolvedType))
-                        throw new ArgumentException($"Base type must inherit from Component: {baseTypeName}");
                     baseType = resolvedType;
                 }
                 else if (pattern == null)
@@ -174,51 +147,12 @@ namespace Commandify
             if (pattern == null)
                 throw new ArgumentException("Search pattern required");
 
-            var componentTypes = TypeCache.GetTypesDerivedFrom(baseType);
-            var matchingTypes = componentTypes.Where(t => WildcardMatch(t.FullName, pattern))
-                                           .OrderBy(t => t.FullName);
+            var matchingTypes = TypeUtility.GetDerivedTypes(baseType, pattern);
 
             if (!matchingTypes.Any())
                 return "No components found matching the pattern.";
 
             return string.Join("\n", matchingTypes.Select(t => t.FullName));
-        }
-
-        private Type ResolveComponentType(string typeName)
-        {
-            // Try exact name first
-            var type = Type.GetType(typeName);
-            if (type != null && typeof(Component).IsAssignableFrom(type))
-                return type;
-
-            // Try Unity namespace
-            type = Type.GetType($"UnityEngine.{typeName}");
-            if (type != null && typeof(Component).IsAssignableFrom(type))
-                return type;
-
-            // Try all loaded assemblies
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                type = assembly.GetType(typeName) ?? 
-                       assembly.GetType($"UnityEngine.{typeName}");
-                
-                if (type != null && typeof(Component).IsAssignableFrom(type))
-                    return type;
-            }
-
-            return null;
-        }
-
-        private bool WildcardMatch(string text, string pattern)
-        {
-            if (string.IsNullOrEmpty(pattern)) return false;
-            if (pattern == "*") return true;
-
-            return System.Text.RegularExpressions.Regex.IsMatch(
-                text ?? "", 
-                "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
-            );
         }
     }
 }

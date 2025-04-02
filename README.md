@@ -38,12 +38,14 @@ echo "scene list --all" | nc localhost 12345
 - `scene unload <scene-specifier>...` - Unload specified scenes
 - `scene activate <scene-specifier>` - Set active scene
 
-### GameObject Creation
-- `create [name] [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]` - Create a GameObject
-  - `name`: Optional name for the GameObject (default: "GameObject")
+### GameObject Creation and Instantiation
+- `create [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector] <name>` - Create a new GameObject
+- `create [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector] <source-selector> <name>` - Create by duplicating an existing GameObject or instantiating a prefab
+  - `name`: Name for the new GameObject (optional, defaults to source object name or "GameObject")
+  - `source-selector`: Reference to source GameObject or prefab to duplicate/instantiate (optional)
   - `--parent`: Optional hierarchy path to parent the new object under
   - `--with`: Optional comma-separated list of components to add
-  - `--prefab`: Optional prefab selector to specify which prefab to edit.
+  - `--prefab`: Optional prefab selector to specify which prefab to edit
 
 Examples:
 ```bash
@@ -53,9 +55,15 @@ create Player --parent World                         # Create as child of "World
 create Camera --with Camera,AudioListener            # Create with components
 create Enemy --parent World/Enemies --with Rigidbody,BoxCollider,MeshRenderer # Create with parent and components
 
+# Duplicate or instantiate from existing objects
+create @&1234 EnemyClone                             # Duplicate GameObject with ID 1234
+create Prefabs/Enemy.prefab NewEnemy                # Instantiate prefab
+create Prefabs/UI/Button.prefab CustomButton --parent Canvas  # Instantiate prefab under Canvas
+
 # Create inside prefabs
 create Button --prefab UI/MenuPrefab                # Create GameObject at root of MenuPrefab
 create Icon --prefab UI/ButtonPrefab --parent Panel --with Image  # Create GameObject under Panel in ButtonPrefab
+create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # Instantiate prefab inside another prefab
 ```
 
 ### Asset Operations
@@ -65,8 +73,7 @@ create Icon --prefab UI/ButtonPrefab --parent Panel --with Image  # Create GameO
 - `asset create-types` - List available asset types
 
 ### Prefab Operations
-- `prefab instantiate <selector> <hierarchy-path>` - Instantiate first prefab from selector at the specified hierarchy path
-- `prefab create [--variant] <selector> <path>` - Create prefab
+- `prefab create [--variant] <selector> <path>` - Create prefab or prefab variant
 
 ### View Operations
 - `list [--filter <filterspec>] [--format <format>] [--components] <selector>` - List selected objects

@@ -11,12 +11,14 @@ namespace Commandify
         public string Execute(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
-                return "Usage: create [name] [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]";
+                return @"Usage: create <name> [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]
+       create <source-selector> <name> [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]";
 
-            string name = "GameObject";
+            string name = null;
             string parentPath = null;
-            GameObject prefabObject = null;
+            GameObject sourceObject = null;
             List<string> components = new List<string>();
+            GameObject targetPrefab = null;
 
             // Parse arguments
             for (int i = 0; i < args.Count; i++)
@@ -36,143 +38,193 @@ namespace Commandify
                             .Where(c => !string.IsNullOrEmpty(c))
                             .ToList();
                     }
-                    else if (arg == "--prefab" && i + 1 < args.Count) {
+                    else if (arg == "--prefab" && i + 1 < args.Count)
+                    {
                         var prefabSelector = args[++i];
                         var selectedObjects = context.ResolveObjectReference(prefabSelector).ToArray();
                         if (selectedObjects.Length == 0)
                             throw new ArgumentException($"No objects found matching prefab selector: {prefabSelector}");
-                        prefabObject = selectedObjects[0] as GameObject;
-                        if (prefabObject == null)
+                        targetPrefab = selectedObjects[0] as GameObject;
+                        if (targetPrefab == null)
                             throw new ArgumentException($"Selected object is not a GameObject: {prefabSelector}");
+                    }
+                    else if (arg == "--source" && i + 1 < args.Count)
+                    {
+                        var sourceSelector = args[++i];
+                        var selectedObjects = context.ResolveObjectReference(sourceSelector).ToArray();
+                        if (selectedObjects.Length == 0)
+                            throw new ArgumentException($"No objects found matching source selector: {sourceSelector}");
+                        sourceObject = selectedObjects[0] as GameObject;
+                        if (sourceObject == null)
+                            throw new ArgumentException($"Selected object is not a GameObject: {sourceSelector}");
                     }
                     else
                     {
                         throw new ArgumentException($"Unknown option: {arg}");
                     }
                 }
-                else if (i == 0)
+                else
                 {
-                    name = arg;
+                    if (name == null)
+                    {
+                        name = arg;
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Too many arguments");
+                    }
                 }
+            }
+
+            // If no name was specified, use source object name or default
+            if (name == null)
+            {
+                name = sourceObject != null ? sourceObject.name : "GameObject";
             }
 
             GameObject obj;
             Transform parentTransform = null;
 
             // Handle prefab context if specified
-            if (prefabObject != null)
+            if (targetPrefab != null)
             {
-                if (!PrefabUtility.IsPartOfPrefabAsset(prefabObject))
-                    throw new ArgumentException($"Selected object is not a prefab: {prefabObject.name}");
+                if (!PrefabUtility.IsPartOfPrefabAsset(targetPrefab))
+                    throw new ArgumentException($"Selected object is not a prefab: {targetPrefab.name}");
 
                 // Get the prefab stage or open it
                 var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
-                if (prefabStage == null || prefabStage.prefabAssetPath != AssetDatabase.GetAssetPath(prefabObject))
+                if (prefabStage == null || prefabStage.prefabAssetPath != AssetDatabase.GetAssetPath(targetPrefab))
                 {
-                    prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.OpenPrefab(AssetDatabase.GetAssetPath(prefabObject));
+                    prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.OpenPrefab(AssetDatabase.GetAssetPath(targetPrefab));
                     if (prefabStage == null)
-                        throw new Exception($"Failed to open prefab stage for: {prefabObject.name}");
+                        throw new Exception($"Failed to open prefab stage for: {targetPrefab.name}");
                 }
 
                 // Find parent in prefab if specified
                 if (!string.IsNullOrEmpty(parentPath))
                 {
-                    var parent = FindTransformInHierarchy(prefabStage.prefabContentsRoot.transform, parentPath);
-                    if (parent == null)
+                    parentTransform = FindTransformInHierarchy(prefabStage.prefabContentsRoot.transform, parentPath);
+                    if (parentTransform == null)
                         throw new ArgumentException($"Parent path not found in prefab: {parentPath}");
-                    parentTransform = parent;
                 }
                 else
                 {
                     parentTransform = prefabStage.prefabContentsRoot.transform;
                 }
 
-                obj = new GameObject(name);
+                if (sourceObject != null)
+                {
+                    // Instantiate from source
+                    if (PrefabUtility.IsPartOfPrefabAsset(sourceObject))
+                    {
+                        obj = (GameObject)PrefabUtility.InstantiatePrefab(sourceObject);
+                        obj.name = name;
+                    }
+                    else
+                    {
+                        obj = UnityEngine.Object.Instantiate(sourceObject);
+                        obj.name = name;
+                    }
+                }
+                else
+                {
+                    // Create new
+                    obj = new GameObject(name);
+                }
+
                 obj.transform.SetParent(parentTransform, false);
                 Undo.RegisterCreatedObjectUndo(obj, "Create GameObject in Prefab");
             }
             else
             {
                 // Create in scene
-                obj = new GameObject(name);
+                if (sourceObject != null)
+                {
+                    // Instantiate from source
+                    if (PrefabUtility.IsPartOfPrefabAsset(sourceObject))
+                    {
+                        obj = (GameObject)PrefabUtility.InstantiatePrefab(sourceObject);
+                        obj.name = name;
+                    }
+                    else
+                    {
+                        obj = UnityEngine.Object.Instantiate(sourceObject);
+                        obj.name = name;
+                    }
+                }
+                else
+                {
+                    // Create new
+                    obj = new GameObject(name);
+                }
+
                 Undo.RegisterCreatedObjectUndo(obj, "Create GameObject");
 
                 // Set parent if specified
                 if (!string.IsNullOrEmpty(parentPath))
                 {
-                    var parent = FindTransformInScene(parentPath);
-                    obj.transform.SetParent(parent, false);
+                    parentTransform = FindTransformInScene(parentPath);
+                    if (parentTransform == null)
+                        throw new ArgumentException($"Parent path not found in scene: {parentPath}");
+                }
+
+                if (parentTransform != null)
+                {
+                    Undo.SetTransformParent(obj.transform, parentTransform, "Set GameObject Parent");
                 }
             }
 
             // Add components
             foreach (var componentName in components)
             {
-                try
-                {
-                    // Try to find the component type
-                    var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                    Type componentType = null;
-
-                    // First try exact name
-                    componentType = assemblies.SelectMany(a => a.GetTypes())
-                        .FirstOrDefault(t => typeof(Component).IsAssignableFrom(t) && 
-                            (t.Name == componentName || t.Name == componentName + "Component"));
-
-                    if (componentType == null)
-                    {
-                        // Try UnityEngine namespace
-                        componentType = assemblies.SelectMany(a => a.GetTypes())
-                            .FirstOrDefault(t => typeof(Component).IsAssignableFrom(t) && 
-                                (t.FullName == "UnityEngine." + componentName || 
-                                 t.FullName == "UnityEngine." + componentName + "Component"));
-                    }
-
-                    if (componentType == null)
-                        throw new ArgumentException($"Component type not found: {componentName}");
-
-                    Undo.AddComponent(obj, componentType);
-                }
-                catch (Exception e)
-                {
-                    // Clean up the created object if component addition fails
-                    GameObject.DestroyImmediate(obj);
-                    throw new ArgumentException($"Failed to add component {componentName}: {e.Message}");
-                }
+                var componentType = TypeUtility.FindType(componentName);
+                if (componentType == null || !typeof(Component).IsAssignableFrom(componentType))
+                    throw new ArgumentException($"Invalid component type: {componentName}");
+                Undo.AddComponent(obj, componentType);
             }
 
-            return ObjectFormatter.FormatObject(obj, ObjectFormatter.OutputFormat.Default);
+            Selection.activeGameObject = obj;
+            return $"Created {obj.name}";
         }
 
         private Transform FindTransformInScene(string path)
         {
-            if (string.IsNullOrEmpty(path))
-                return null;
+            var parts = path.Split('/');
+            Transform current = null;
 
-            string[] pathParts = path.Split('/');
+            foreach (var part in parts)
+            {
+                if (current == null)
+                {
+                    var roots = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+                    current = roots.FirstOrDefault(r => r.name == part)?.transform;
+                    if (current == null)
+                        return null;
+                }
+                else
+                {
+                    current = current.Find(part);
+                    if (current == null)
+                        return null;
+                }
+            }
 
-            // Find root object
-            var rootObject = GameObject.Find(pathParts[0]);
-            if (rootObject == null)
-                throw new ArgumentException($"Root object not found: {pathParts[0]}");
-
-            return FindTransformInHierarchy(rootObject.transform, string.Join("/", pathParts.Skip(1)));
+            return current;
         }
 
-        private Transform FindTransformInHierarchy(Transform root, string relativePath)
+        private Transform FindTransformInHierarchy(Transform root, string path)
         {
-            if (string.IsNullOrEmpty(relativePath))
+            if (string.IsNullOrEmpty(path))
                 return root;
 
-            string[] pathParts = relativePath.Split('/');
+            var parts = path.Split('/');
             Transform current = root;
 
-            foreach (var part in pathParts)
+            foreach (var part in parts)
             {
-                var child = current.Find(part);
-                if (child == null)
-                    throw new ArgumentException($"Could not find '{part}' under '{current.name}'");
-                current = child;
+                current = current.Find(part);
+                if (current == null)
+                    return null;
             }
 
             return current;
