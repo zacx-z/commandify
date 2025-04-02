@@ -44,7 +44,7 @@ namespace Commandify
                         return assetPath;
                     return "^" + GetObjectHierarchyPath(go);
                 }
-                return go.name;
+                return $"{go.name} (GameObject)";
             }
             else
             {
@@ -53,7 +53,7 @@ namespace Commandify
                     string assetPath = AssetDatabase.GetAssetPath(obj);
                     return string.IsNullOrEmpty(assetPath) ? obj.name : assetPath;
                 }
-                return obj.name;
+                return $"{obj.name} ({obj.GetType().Name})";
             }
         }
     }
