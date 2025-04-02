@@ -187,6 +187,7 @@ range = single_number | range_expression | multiple_ranges
 ```bash
 # Basic selections
 Assets/Prefabs/Player      # Select asset by path
+Resources/unity_builtin_extra::Material # Load all built-in assets at path and filter for Material type
 ^UI/MainMenu/PlayButton   # Select object in hierarchy
 @#Enemy                   # Select all with "Enemy" tag
 @@o:asteroid             # QuickSearch for asteroid objects

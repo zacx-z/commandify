@@ -326,33 +326,28 @@ namespace Commandify
 
         private IEnumerable<UnityEngine.Object> FindAssets(string path, string type = null)
         {
-            string fullPath = path.StartsWith("Assets/") ? path : "Assets/" + path;
-
-            if (!fullPath.Contains("*") && !fullPath.Contains("?"))
+            if (!path.Contains("*") && !path.Contains("?"))
             {
-                if (System.IO.File.Exists(fullPath))
+                if (type != null)
                 {
-                    if (type != null)
-                    {
-                        // If type is specified, load all assets at path
-                        var allAssets = AssetDatabase.LoadAllAssetsAtPath(fullPath);
-                        var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
-                            .Append(typeof(UnityEngine.Object))
-                            .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
-                        if (targetType != null)
-                            return allAssets.Where(a => a != null && targetType.IsInstanceOfType(a));
-                        return Enumerable.Empty<UnityEngine.Object>();
-                    }
-                    else
-                    {
-                        var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(fullPath);
-                        return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
-                    }
+                    // If type is specified, load all assets at path
+                    var allAssets = AssetDatabase.LoadAllAssetsAtPath(path);
+                    var targetType = TypeCache.GetTypesDerivedFrom<UnityEngine.Object>()
+                        .Append(typeof(UnityEngine.Object))
+                        .FirstOrDefault(t => t.Name.Equals(type, StringComparison.OrdinalIgnoreCase));
+                    if (targetType != null)
+                        return allAssets.Where(a => a != null && targetType.IsInstanceOfType(a));
+                    return Enumerable.Empty<UnityEngine.Object>();
+                }
+                else
+                {
+                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                    return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
                 }
                 return Enumerable.Empty<UnityEngine.Object>();
             }
 
-            var files = SearchFiles(fullPath);
+            var files = SearchFiles(path);
             var assets = files.SelectMany(f => 
             {
                 if (type != null)
