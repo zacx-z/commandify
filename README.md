@@ -43,7 +43,7 @@ echo "scene list --all" | nc localhost 12345
   - `name`: Optional name for the GameObject (default: "GameObject")
   - `--parent`: Optional hierarchy path to parent the new object under
   - `--with`: Optional comma-separated list of components to add
-  - `--prefab`: Optional prefab selector to create the object inside a prefab
+  - `--prefab`: Optional prefab selector to specify which prefab to edit.
 
 Examples:
 ```bash
@@ -54,8 +54,8 @@ create Camera --with Camera,AudioListener            # Create with components
 create Enemy --parent World/Enemies --with Rigidbody,BoxCollider,MeshRenderer # Create with parent and components
 
 # Create inside prefabs
-create Button --prefab UI/MenuPrefab --parent Panel  # Create GameObject inside MenuPrefab under Panel
-create Icon --prefab UI/ButtonPrefab --with Image    # Create GameObject with Image component in ButtonPrefab
+create Button --prefab UI/MenuPrefab                # Create GameObject at root of MenuPrefab
+create Icon --prefab UI/ButtonPrefab --parent Panel --with Image  # Create GameObject under Panel in ButtonPrefab
 ```
 
 ### Asset Operations

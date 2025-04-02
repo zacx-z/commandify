@@ -77,7 +77,7 @@ namespace Commandify
                 // Find parent in prefab if specified
                 if (!string.IsNullOrEmpty(parentPath))
                 {
-                    var parent = prefabStage.prefabContentsRoot.transform.Find(parentPath);
+                    var parent = FindTransformInHierarchy(prefabStage.prefabContentsRoot.transform, parentPath);
                     if (parent == null)
                         throw new ArgumentException($"Parent path not found in prefab: {parentPath}");
                     parentTransform = parent;
@@ -100,11 +100,8 @@ namespace Commandify
                 // Set parent if specified
                 if (!string.IsNullOrEmpty(parentPath))
                 {
-                    var parent = GameObject.Find(parentPath);
-                    if (parent == null)
-                        throw new ArgumentException($"Parent object not found: {parentPath}");
-                    
-                    obj.transform.SetParent(parent.transform, false);
+                    var parent = FindTransformInScene(parentPath);
+                    obj.transform.SetParent(parent, false);
                 }
             }
 
@@ -145,6 +142,40 @@ namespace Commandify
             }
 
             return ObjectFormatter.FormatObject(obj, ObjectFormatter.OutputFormat.Default);
+        }
+
+        private Transform FindTransformInScene(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return null;
+
+            string[] pathParts = path.Split('/');
+
+            // Find root object
+            var rootObject = GameObject.Find(pathParts[0]);
+            if (rootObject == null)
+                throw new ArgumentException($"Root object not found: {pathParts[0]}");
+
+            return FindTransformInHierarchy(rootObject.transform, string.Join("/", pathParts.Skip(1)));
+        }
+
+        private Transform FindTransformInHierarchy(Transform root, string relativePath)
+        {
+            if (string.IsNullOrEmpty(relativePath))
+                return root;
+
+            string[] pathParts = relativePath.Split('/');
+            Transform current = root;
+
+            foreach (var part in pathParts)
+            {
+                var child = current.Find(part);
+                if (child == null)
+                    throw new ArgumentException($"Could not find '{part}' under '{current.name}'");
+                current = child;
+            }
+
+            return current;
         }
     }
 }

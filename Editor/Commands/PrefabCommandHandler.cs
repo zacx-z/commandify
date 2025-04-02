@@ -29,45 +29,138 @@ namespace Commandify
 
         private string InstantiatePrefab(List<string> args, CommandContext context)
         {
-            if (args.Count != 2)
-                throw new ArgumentException("Usage: prefab instantiate <selector> <hierarchy-path>");
+            if (args.Count < 1)
+                throw new ArgumentException("Usage: prefab instantiate [selector] <hierarchy-path> [--prefab prefab-selector]");
 
-            string selector = args[0];
-            string hierarchyPath = args[1];
+            UnityEngine.Object prefabObject = null;
+            string hierarchyPath = null;
+            UnityEngine.Object parentPrefabObject = null;
 
-            var selectedObjects = context.ResolveObjectReference(selector).ToArray();
-            if (selectedObjects.Length == 0)
-                throw new ArgumentException($"No objects found matching selector: {selector}");
+            // Parse arguments
+            for (int i = 0; i < args.Count; i++)
+            {
+                string arg = context.ResolveStringReference(args[i]);
+                if (arg.StartsWith("--"))
+                {
+                    if (arg == "--prefab" && i + 1 < args.Count)
+                    {
+                        var selectedObjects = context.ResolveObjectReference(args[++i]).ToArray();
+                        if (selectedObjects.Length == 0)
+                            throw new ArgumentException($"No objects found matching selector: {args[i]}");
+                        parentPrefabObject = selectedObjects[0];
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Unknown option: {arg}");
+                    }
+                }
+                else if (hierarchyPath == null && i == args.Count - 1)
+                {
+                    hierarchyPath = arg;
+                }
+                else if (prefabObject == null)
+                {
+                    var selectedObjects = context.ResolveObjectReference(args[i]).ToArray();
+                    if (selectedObjects.Length == 0)
+                        throw new ArgumentException($"No objects found matching selector: {args[i]}");
+                    prefabObject = selectedObjects[0];
+                }
+                else
+                {
+                    throw new ArgumentException("Too many arguments");
+                }
+            }
 
-            var firstObject = selectedObjects[0];
-            if (!PrefabUtility.IsPartOfPrefabAsset(firstObject))
-                throw new ArgumentException($"Selected object is not a prefab: {firstObject.name}");
+            if (hierarchyPath == null)
+                throw new ArgumentException("No hierarchy path specified");
+
+            if (prefabObject)
+                throw new ArgumentException("No prefab selector specified");
+
+            if (!PrefabUtility.IsPartOfPrefabAsset(prefabObject))
+                throw new ArgumentException($"Selected object is not a prefab: {prefabObject.name}");
 
             // Create parent hierarchy if needed
             var parentPath = System.IO.Path.GetDirectoryName(hierarchyPath)?.Replace('\\', '/');
             var objectName = System.IO.Path.GetFileName(hierarchyPath);
             
             Transform parent = null;
-            if (!string.IsNullOrEmpty(parentPath))
+            GameObject parentPrefabRoot = null;
+            bool isParentPrefabAsset = false;
+
+            if (parentPrefabObject != null)
             {
-                var parentObject = GameObject.Find(parentPath);
-                if (parentObject == null)
-                    throw new ArgumentException($"Parent path not found: {parentPath}");
-                parent = parentObject.transform;
+                // Get the prefab stage or open it
+                var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+                if (prefabStage == null || prefabStage.prefabAssetPath != AssetDatabase.GetAssetPath(parentPrefabObject))
+                {
+                    prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.OpenPrefab(AssetDatabase.GetAssetPath(parentPrefabObject));
+                    if (prefabStage == null)
+                        throw new Exception($"Failed to open prefab stage for: {parentPrefabObject.name}");
+                }
             }
 
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(firstObject);
+            if (!string.IsNullOrEmpty(parentPath))
+            {
+                if (parentPrefabObject == null)
+                {
+                    var parentObject = GameObject.Find(parentPath);
+                    if (parentObject == null)
+                        throw new ArgumentException($"Parent object not found: {parentPath}");
+                    parent = parentObject.transform;
+                }
+                else
+                {
+                    // Try to find in prefab stage if we're in prefab mode
+                    var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+                    if (prefabStage != null)
+                    {
+                        parent = prefabStage.prefabContentsRoot.transform.Find(parentPath);
+                        if (parent != null)
+                        {
+                            isParentPrefabAsset = true;
+                            parentPrefabRoot = prefabStage.prefabContentsRoot;
+                        }
+                    }
+
+                    if (parent == null)
+                        throw new ArgumentException($"Parent path not found: {parentPath}");
+                }
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefabObject);
             if (instance == null)
-                throw new Exception($"Failed to instantiate prefab: {firstObject.name}");
+                throw new Exception($"Failed to instantiate prefab: {prefabObject.name}");
 
             instance.name = objectName;
             if (parent != null)
+            {
                 instance.transform.SetParent(parent, false);
+
+                if (isParentPrefabAsset)
+                {
+                    // When in prefab mode, we need to apply the changes to the prefab asset
+                    UnityEditor.SceneManagement.PrefabStage prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+                    if (prefabStage != null)
+                    {
+                        EditorUtility.SetDirty(parentPrefabRoot);
+                    }
+                }
+                else if (PrefabUtility.IsPartOfPrefabInstance(parent))
+                {
+                    // If parent is a prefab instance, record the modification
+                    var prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(parent.gameObject);
+                    if (prefabRoot != null)
+                    {
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(prefabRoot);
+                    }
+                }
+            }
 
             Undo.RegisterCreatedObjectUndo(instance, "Instantiate Prefab");
             Selection.activeObject = instance;
 
-            return $"Instantiated prefab {firstObject.name} at {hierarchyPath}";
+            return $"Instantiated prefab {prefabObject.name} at {hierarchyPath}";
         }
 
         private string CreatePrefab(List<string> args, CommandContext context)
