@@ -23,6 +23,8 @@ namespace Commandify
             // Remove $ prefix if present
             name = name.StartsWith("$") ? name.Substring(1) : name;
 
+            if (!IsIdentifier(name)) return null;
+
             if (!variables.TryGetValue(name, out object value))
                 throw new ArgumentException($"Variable ${name} not found");
 
@@ -112,7 +114,7 @@ namespace Commandify
                 throw new ArgumentException("Reference cannot be empty");
 
             // If it's a variable reference
-            if (reference.StartsWith("$"))
+            if (IsVariable(reference))
             {
                 var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
 
@@ -160,6 +162,33 @@ namespace Commandify
         public IReadOnlyDictionary<string, object> GetAllVariables()
         {
             return variables;
+        }
+
+        private bool IsIdentifier(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return false;
+
+            // Single character case
+            if (name.Length == 1)
+                return true;
+
+            // Check remaining characters (can be letter, digit, or underscore)
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (!char.IsLetterOrDigit(name[i]) && name[i] != '_')
+                    return false;
+            }
+
+            return true;
+        }
+
+        public bool IsVariable(string value)
+        {
+            if (string.IsNullOrEmpty(value) || !value.StartsWith("$"))
+                return false;
+
+            return IsIdentifier(value.Substring(1));
         }
     }
 }

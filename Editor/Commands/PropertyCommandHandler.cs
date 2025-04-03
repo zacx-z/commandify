@@ -260,7 +260,7 @@ namespace Commandify
                         }
                         break;
                     default:
-                        return false;
+                        throw new NotSupportedException($"Unsupported property type: {property.propertyType}");
                 }
                 return true;
             }

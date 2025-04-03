@@ -198,6 +198,8 @@ namespace Commandify
                 var start = position;
                 while (position < input.Length && (char.IsLetterOrDigit(input[position]) || input[position] == '_'))
                     position++;
+                if (start == position && !char.IsWhiteSpace(input[position]))
+                    position++;
                 return input.Substring(start, position - start);
             }
 

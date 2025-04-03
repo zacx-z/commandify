@@ -19,33 +19,13 @@ namespace Commandify
             object value;
 
             // Handle variable reference in value
-            if (valueStr.StartsWith("$"))
+            if (context.IsVariable(valueStr))
             {
                 value = context.ResolveReference(valueStr);
             }
             else
             {
-                // Try to parse the value as a number or boolean
-                if (bool.TryParse(valueStr, out bool boolValue))
-                    value = boolValue;
-                else if (int.TryParse(valueStr, out int intValue))
-                    value = intValue;
-                else if (float.TryParse(valueStr, out float floatValue))
-                    value = floatValue;
-                else if (valueStr.StartsWith("[") && valueStr.EndsWith("]"))
-                {
-                    // Parse as array
-                    var elements = valueStr.Trim('[', ']')
-                        .Split(',')
-                        .Select(s => s.Trim())
-                        .Where(s => !string.IsNullOrEmpty(s))
-                        .ToList();
-                    value = elements;
-                }
-                else if (valueStr == "null")
-                    value = null;
-                else
-                    value = valueStr;
+                value = context.ResolveObjectReference(valueStr).ToArray();
             }
 
             context.SetVariable(name, value);
