@@ -159,12 +159,42 @@ while true; do
         echo "  component <command> <selector> [<args>]"
         echo "  transform <command> <selector> [<args>]"
         echo
+        echo "Script Operations:"
+        echo "  run <script-path> [<options>]  Execute a bash script with optional arguments"
+        echo
         echo "Type 'exit' to quit"
         continue
     fi
 
     # Skip empty commands
     if [[ -z "$cmd" ]]; then
+        continue
+    fi
+
+    # Handle run command
+    if [[ "$cmd" =~ ^run[[:space:]]+([^[:space:]]+)(.*)$ ]]; then
+        script_path="${BASH_REMATCH[1]}"
+        script_args="${BASH_REMATCH[2]}"
+
+        if [[ ! -f "$script_path" ]]; then
+            echo "[ERR]Error: Script file '$script_path' not found" >&2
+            continue
+        fi
+        if [[ ! -x "$script_path" ]]; then
+            echo "[ERR]Error: Script file '$script_path' is not executable" >&2
+            continue
+        fi
+
+        # Execute the script with any provided arguments and process each line
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+                # Send the command to server and handle response
+                response=$(echo "$line" | nc $HOST $PORT)
+                if [[ -n "$response" ]]; then
+                    handle_response "$response"
+                fi
+            fi
+        done < <($script_path $script_args || echo "[ERR]Script execution failed" >&2)
         continue
     fi
 

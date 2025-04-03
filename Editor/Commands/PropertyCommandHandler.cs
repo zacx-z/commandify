@@ -37,7 +37,7 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).ToList();
             if (!objects.Any())
-                throw new ArgumentException("No objects found");
+                throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
             var properties = new List<string>();
             foreach (var obj in objects)
@@ -98,7 +98,7 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).ToList();
             if (!objects.Any())
-                throw new ArgumentException("No objects found");
+                throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
             string propertyPath = context.ResolveStringReference(args[1]);
 
@@ -143,7 +143,7 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).ToList();
             if (!objects.Any())
-                throw new ArgumentException("No objects found");
+                throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
             string propertyPath = context.ResolveStringReference(args[1]);
             string value = context.ResolveStringReference(args[2]);
@@ -152,7 +152,6 @@ namespace Commandify
             foreach (var obj in objects)
             {
                 var serializedObject = new SerializedObject(obj);
-                UnityEngine.Debug.Log(propertyPath);
                 var property = serializedObject.FindProperty(propertyPath);
 
                 if (property == null)

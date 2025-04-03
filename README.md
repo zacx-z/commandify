@@ -133,6 +133,7 @@ transform scale selected 2 2 2      # Double the size
 - `settings set/get <setting-path> <value>` - Manage settings
 - `exec <menu-path>` - Execute menu item
 - `exec --search [pattern]` - Search menu items by pattern
+- `run <script-path> [<options>]` - Execute a commandify script file
 
 Examples:
 ```bash
@@ -143,6 +144,10 @@ exec "Assets/Create/Material"             # Create new material
 # Search menu items
 exec --search window     # Search menu items containing "window"
 exec --search "Assets/"  # Search menu items under Assets menu
+
+# Run commandify scripts
+run scripts/create-cube.sh MyCube     # Create a cube primitive
+run scripts/create-sphere.sh Ball     # Create a sphere primitive
 ```
 
 ## Selector Grammar
