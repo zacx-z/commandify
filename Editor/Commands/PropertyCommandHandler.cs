@@ -259,6 +259,22 @@ namespace Commandify
                             throw new ArgumentException($"Failed to set object reference: {ex.Message}");
                         }
                         break;
+                    case SerializedPropertyType.Generic:
+                        if (property.isArray)
+                        {
+                            // Remove brackets and split by commas
+                            var arrayStr = value.Trim('[', ']');
+                            var elements = arrayStr.Split(',').Select(e => e.Trim()).ToList();
+                            
+                            property.arraySize = elements.Count;
+                            for (int i = 0; i < elements.Count; i++)
+                            {
+                                var element = property.GetArrayElementAtIndex(i);
+                                SetPropertyValue(element, elements[i], context);
+                            }
+                            break;
+                        }
+                        throw new NotSupportedException($"Unsupported generic property type");
                     default:
                         throw new NotSupportedException($"Unsupported property type: {property.propertyType}");
                 }
