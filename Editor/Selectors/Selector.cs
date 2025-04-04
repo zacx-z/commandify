@@ -389,7 +389,6 @@ namespace Commandify
                     var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
                     return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
                 }
-                return Enumerable.Empty<UnityEngine.Object>();
             }
 
             var files = SearchFiles(path);

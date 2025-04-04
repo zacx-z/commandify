@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Text;
+using System.Diagnostics;
 
 namespace Commandify
 {
@@ -27,6 +29,8 @@ namespace Commandify
                     return MoveAsset(subArgs, context);
                 case "create-types":
                     return ListCreateTypes();
+                case "thumbnail":
+                    return GetThumbnails(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown asset subcommand: {subCommand}");
             }
@@ -195,6 +199,41 @@ namespace Commandify
                 .Select(t => t.Name);
 
             return string.Join("\n", types);
+        }
+
+        private string GetThumbnails(List<string> args, CommandContext context)
+        {
+            if (args.Count < 1)
+                throw new ArgumentException("No selector specified for thumbnail command");
+
+            var objects = context.ResolveObjectReference(args[0]).ToList();
+            if (!objects.Any())
+                return "No objects found matching selector";
+
+            var thumbnails = new List<string>();
+            foreach (var obj in objects)
+            {
+                var texture = AssetPreview.GetAssetPreview(obj); // FIXME The preview may be loading. Use `AssetPreview.IsLoadingAssetPreview()` to check whether to wait before returning the result.
+                if (texture != null)
+                {
+                    byte[] bytes = texture.EncodeToPNG();
+                    if (bytes != null && bytes.Length > 0)
+                    {
+                        string base64 = Convert.ToBase64String(bytes);
+                        thumbnails.Add(base64);
+                    }
+                }
+                else
+                    UnityEngine.Debug.LogWarning($"No thumbnail available for {obj}");
+            }
+
+            if (!thumbnails.Any())
+                return "No thumbnails available for selected objects";
+
+            // Store the thumbnails in the result variable
+            context.SetLastResult(thumbnails);
+
+            return string.Join("\n", thumbnails);
         }
     }
 }

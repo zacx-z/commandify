@@ -71,6 +71,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 - `asset create <type> <path>` - Create a new asset
 - `asset move <path> <new-path>` - Move/rename asset
 - `asset create-types` - List available asset types
+- `asset thumbnail <selector>` - Get base64 PNG thumbnails for selected assets
 
 ### Prefab Operations
 - `prefab create [--variant] <selector> <path>` - Create prefab or prefab variant
