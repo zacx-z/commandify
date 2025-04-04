@@ -21,8 +21,8 @@ namespace Commandify
 
             switch (subCommand.ToLower())
             {
-                case "list":
-                    return ListAssets(subArgs, context);
+                case "search":
+                    return SearchAssets(subArgs, context);
                 case "create":
                     return CreateAsset(subArgs, context);
                 case "move":
@@ -34,81 +34,6 @@ namespace Commandify
                 default:
                     throw new ArgumentException($"Unknown asset subcommand: {subCommand}");
             }
-        }
-
-        private string ListAssets(List<string> args, CommandContext context)
-        {
-            bool recursive = false;
-            string filterSpec = null;
-            string path = null;
-
-            for (int i = 0; i < args.Count; i++)
-            {
-                string arg = args[i];
-
-                switch (arg)
-                {
-                    case "--filter":
-                        if (++i < args.Count)
-                            filterSpec = context.ResolveStringReference(args[i]);
-                        break;
-                    case "--recursive":
-                        recursive = true;
-                        break;
-                    default:
-                        if (path == null)
-                            path = context.ResolveStringReference(arg);
-                        break;
-                }
-            }
-
-            if (string.IsNullOrEmpty(path))
-                throw new ArgumentException("No path specified");
-
-            path = path.Replace('\\', '/');
-            if (!path.StartsWith("Assets/"))
-                path = "Assets/" + path.TrimStart('/');
-
-            var assets = new List<string>();
-            string[] guids;
-
-            if (recursive)
-            {
-                guids = AssetDatabase.FindAssets(filterSpec ?? "", new[] { path });
-                foreach (var guid in guids)
-                {
-                    string assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                    if (!string.IsNullOrEmpty(assetPath))
-                        assets.Add(assetPath);
-                }
-            }
-            else
-            {
-                if (Directory.Exists(path))
-                {
-                    var entries = Directory.GetFileSystemEntries(path);
-                    foreach (var entry in entries)
-                    {
-                        string relativePath = entry.Replace('\\', '/');
-                        if (filterSpec == null || relativePath.Contains(filterSpec))
-                            assets.Add(relativePath);
-                    }
-                }
-                else if (File.Exists(path))
-                {
-                    assets.Add(path);
-                }
-            }
-
-            if (!assets.Any())
-                return "No assets found";
-
-            // Store the assets in the result variable
-            var loadedAssets = assets.Select(p => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(p))
-                                   .Where(a => a != null);
-            context.SetLastResult(loadedAssets);
-
-            return string.Join("\n", assets.OrderBy(p => p));
         }
 
         private string CreateAsset(List<string> args, CommandContext context)
@@ -234,6 +159,90 @@ namespace Commandify
             context.SetLastResult(thumbnails);
 
             return string.Join("\n", thumbnails);
+        }
+
+        private string SearchAssets(List<string> args, CommandContext context)
+        {
+            string[] folders = null;
+            string format = null;
+            string query = null;
+
+            for (int i = 0; i < args.Count; i++)
+            {
+                string arg = args[i];
+
+                switch (arg)
+                {
+                    case "--folder":
+                    case "--folders":
+                        if (++i < args.Count)
+                        {
+                            string folderArg = context.ResolveStringReference(args[i]);
+                            if (folderArg.StartsWith("[") && folderArg.EndsWith("]"))
+                            {
+                                // Parse array format [folder1, folder2, ...]
+                                folders = folderArg.Trim('[', ']')
+                                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(f => f.Trim())
+                                    .ToArray();
+                            }
+                            else
+                            {
+                                folders = new[] { folderArg };
+                            }
+
+                            // Ensure all folders start with Assets/
+                            folders = folders.Select(f => 
+                            {
+                                f = f.Replace('\\', '/');
+                                return f.StartsWith("Assets/") ? f : "Assets/" + f.TrimStart('/');
+                            }).ToArray();
+                        }
+                        break;
+                    case "--format":
+                        if (++i < args.Count)
+                            format = context.ResolveStringReference(args[i]);
+                        break;
+                    default:
+                        if (query == null)
+                            query = context.ResolveStringReference(arg);
+                        break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(query))
+                throw new ArgumentException("No search query specified");
+
+            // If no folders specified, search in entire Assets folder
+            if (folders == null || folders.Length == 0)
+                folders = new[] { "Assets" };
+
+            var guids = AssetDatabase.FindAssets(query, folders);
+            var assets = new List<string>();
+
+            foreach (var guid in guids)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                if (!string.IsNullOrEmpty(assetPath))
+                    assets.Add(assetPath);
+            }
+
+            if (!assets.Any())
+                return "No assets found";
+
+            // Store the assets in the result variable
+            var loadedAssets = assets.Select(p => AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(p))
+                                   .Where(a => a != null).ToList();
+            context.SetLastResult(loadedAssets);
+
+            ObjectFormatter.OutputFormat outputFormat = ObjectFormatter.OutputFormat.Default;
+            if (format?.ToLower() == "path")
+                outputFormat = ObjectFormatter.OutputFormat.Path;
+            else if (format?.ToLower() == "instance-id" || format?.ToLower() == "instanceid")
+                outputFormat = ObjectFormatter.OutputFormat.InstanceId;
+
+            var formattedAssets = loadedAssets.Select(a => ObjectFormatter.FormatObject(a, outputFormat));
+            return string.Join("\n", formattedAssets);
         }
     }
 }

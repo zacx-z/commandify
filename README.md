@@ -67,7 +67,9 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 ```
 
 ### Asset Operations
-- `asset list [--filter <filterspec> | --recursive] <path>` - List assets
+- `asset search [--folder folders] [--format format] <query>` - Search for assets using FindAssets
+  - `--folder`: Single folder or array of folders to search in (e.g., `--folder [Assets/Prefabs, Assets/Materials]`)
+  - `--format`: Output format (`path` for full paths, `instance-id` for instance IDs)
 - `asset create <type> <path>` - Create a new asset
 - `asset move <path> <new-path>` - Move/rename asset
 - `asset create-types` - List available asset types
