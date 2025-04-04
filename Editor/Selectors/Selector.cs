@@ -206,7 +206,7 @@ namespace Commandify
             private string ReadUntilDelimiter()
             {
                 var start = position;
-                while (position < input.Length && !IsDelimiter(input[position]) && !char.IsWhiteSpace(input[position]))
+                while (position < input.Length && !IsDelimiter(input[position]))
                     position++;
                 return input.Substring(start, position - start);
             }
