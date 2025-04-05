@@ -1,6 +1,6 @@
 {
   "name": "com.nelasystem.commandify",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "displayName": "Commandify",
   "description": "A command-line interface for Unity Editor operations",
   "unity": "2021.3",
