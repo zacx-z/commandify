@@ -532,6 +532,8 @@ namespace Commandify
 
             IEnumerable<string> GetDirectoriesAndFiles(string path, string searchPattern, System.IO.SearchOption searchOption)
             {
+                if (File.Exists(path))
+                    return new[] { path };
                 return Directory.GetDirectories(path, searchPattern, searchOption)
                     .Concat(Directory.GetFiles(path, searchPattern, searchOption));
             }
