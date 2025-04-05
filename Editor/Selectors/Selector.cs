@@ -373,7 +373,7 @@ namespace Commandify
                     }
                 }
 
-                if (type != null)
+                if (type != null && type != "DefaultAsset")
                 {
                     // If type is specified, load all assets at path
                     var allAssets = AssetDatabase.LoadAllAssetsAtPath(path);
@@ -386,7 +386,9 @@ namespace Commandify
                 }
                 else
                 {
-                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                    var obj = type == "DefaultAsset"
+                        ? AssetDatabase.LoadAssetAtPath<DefaultAsset>(path)
+                        : AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
                     return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
                 }
             }
@@ -394,14 +396,16 @@ namespace Commandify
             var files = SearchFiles(path);
             var assets = files.SelectMany(f => 
             {
-                if (type != null)
+                if (type != null && type != "DefaultAsset")
                 {
                     // If type is specified, load all assets at path
                     return AssetDatabase.LoadAllAssetsAtPath(f);
                 }
                 else
                 {
-                    var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(f);
+                    var obj = type == "DefaultAsset"
+                        ? AssetDatabase.LoadAssetAtPath<DefaultAsset>(f)
+                        : AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(f);
                     return obj != null ? new[] { obj } : Enumerable.Empty<UnityEngine.Object>();
                 }
             }).Where(obj => obj != null);
@@ -498,7 +502,7 @@ namespace Commandify
                     else
                     {
                         current = current
-                            .SelectMany(basePath => Directory.GetDirectories(basePath, part,
+                            .SelectMany(basePath => GetDirectoriesAndFiles(basePath, part,
                                 parentDoubleStars ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
                             .ToList();
                         parentDoubleStars = false;
@@ -509,13 +513,13 @@ namespace Commandify
                     if (part == "**")
                     {
                         current = current
-                            .SelectMany(basePath => Directory.GetFiles(basePath, "*", SearchOption.AllDirectories))
+                            .SelectMany(basePath => GetDirectoriesAndFiles(basePath, "*", SearchOption.AllDirectories))
                             .ToList();
                     }
                     else
                     {
                         current = current
-                            .SelectMany(basePath => Directory.GetFiles(basePath, part,
+                            .SelectMany(basePath => GetDirectoriesAndFiles(basePath, part,
                                 parentDoubleStars ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
                             .ToList();
                     }
@@ -525,6 +529,12 @@ namespace Commandify
             current = current.Select(path => path.Substring(2)).ToList();
 
             return current;
+
+            IEnumerable<string> GetDirectoriesAndFiles(string path, string searchPattern, System.IO.SearchOption searchOption)
+            {
+                return Directory.GetDirectories(path, searchPattern, searchOption)
+                    .Concat(Directory.GetFiles(path, searchPattern, searchOption));
+            }
         }
 
         private List<SearchItem> QuickSearch(string query)
