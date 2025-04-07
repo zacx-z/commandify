@@ -112,18 +112,20 @@ component search "*" --base Collider      # List all components inheriting from 
 - `transform rotate <selector> [<x> <y> <z>]` - Rotate objects or show current rotations
 - `transform scale <selector> [<x> <y> <z>]` - Scale objects or show current scales
 - `transform parent <parent-selector> <child-selector>...` - Parent objects
+- `transform show <selector>` - Show complete transform information including position, rotation, scale, and parent
 
 Examples:
 ```bash
 # Show current transform values
-transform translate selected         # Show positions
+transform show ^**             # Show complete transform info of everything in the scene
+transform translate ^Cube         # Show positions
 transform rotate ^Cube              # Show rotations
-transform scale selected:Renderer   # Show scales
+transform scale ^Cube           # Show scales
 
 # Apply transformations
-transform translate selected 0 1 0   # Move up by 1 unit
-transform rotate selected 0 90 0     # Rotate 90 degrees around Y
-transform scale selected 2 2 2      # Double the size
+transform translate ^Cube 0 1 0   # Move up by 1 unit
+transform rotate ^Cube 0 90 0     # Rotate 90 degrees around Y
+transform scale ^Cube 2 2 2      # Double the size
 ```
 
 ### Variables
@@ -201,7 +203,8 @@ Resources/unity_builtin_extra::Material # Load all built-in assets at path and f
 
 # Component filtering
 ^Player:Rigidbody        # Select Player's Rigidbody
-selected:MeshRenderer    # Filter selected objects by MeshRenderer
+^World/*:MeshRenderer    # Filter selected objects by MeshRenderer
+$~:Transform            # Filter last command result by Transform
 
 # Range selection
 ^Enemies#0              # Select first enemy

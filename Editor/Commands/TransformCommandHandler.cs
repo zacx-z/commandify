@@ -26,6 +26,8 @@ namespace Commandify
                     return ScaleObjects(subArgs, context);
                 case "parent":
                     return ParentObjects(subArgs, context);
+                case "show":
+                    return ShowTransformInfo(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown transform subcommand: {subCommand}");
             }
@@ -38,12 +40,12 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
 
+            context.SetLastResult(objects.ToArray());
             // If only selector provided, show current positions
             if (args.Count == 1)
             {
-                var positions = objects.Select(o => o.transform.position);
-                context.SetLastResult(objects);
-                return string.Join("\n", positions.Select((pos, i) => $"Object {i + 1}: Position ({pos.x}, {pos.y}, {pos.z})"));
+                var positionInfo = objects.Select(o => (o.name, o.transform.position));
+                return string.Join("\n", positionInfo.Select(info => $"{info.name}: Position ({info.position.x}, {info.position.y}, {info.position.z})"));
             }
 
             if (args.Count < 4)
@@ -66,8 +68,6 @@ namespace Commandify
                 count++;
             }
 
-            // Store the transformed objects in the result variable
-            context.SetLastResult(transforms.Select(t => t.gameObject));
             return $"Translated {count} object(s) by ({x}, {y}, {z})";
         }
 
@@ -78,12 +78,13 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
 
+            context.SetLastResult(objects.ToArray());
+
             // If only selector provided, show current rotations
             if (args.Count == 1)
             {
-                var rotations = objects.Select(o => o.transform.rotation.eulerAngles);
-                context.SetLastResult(objects);
-                return string.Join("\n", rotations.Select((rot, i) => $"Object {i + 1}: Rotation ({rot.x}, {rot.y}, {rot.z})"));
+                IEnumerable<(string name, Vector3 rotation)> rotations = objects.Select(o => (o.name, o.transform.rotation.eulerAngles));
+                return string.Join("\n", rotations.Select(info => $"{info.name}: Rotation ({info.rotation.x}, {info.rotation.y}, {info.rotation.z})"));
             }
 
             if (args.Count < 4)
@@ -105,7 +106,6 @@ namespace Commandify
                 count++;
             }
 
-            context.SetLastResult(transforms.Select(t => t.gameObject));
             return $"Rotated {count} object(s) by ({x}, {y}, {z}) degrees";
         }
 
@@ -116,12 +116,13 @@ namespace Commandify
 
             var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
 
+            context.SetLastResult(objects.ToArray());
+
             // If only selector provided, show current scales
             if (args.Count == 1)
             {
-                var scales = objects.Select(o => o.transform.localScale);
-                context.SetLastResult(objects);
-                return string.Join("\n", scales.Select((scale, i) => $"Object {i + 1}: Scale ({scale.x}, {scale.y}, {scale.z})"));
+                IEnumerable<(string name, Vector3 scale)> scales = objects.Select(o => (o.name, o.transform.localScale));
+                return string.Join("\n", scales.Select(info => $"{info.name}: Scale ({info.scale.x}, {info.scale.y}, {info.scale.z})"));
             }
 
             if (args.Count < 4)
@@ -143,7 +144,6 @@ namespace Commandify
                 count++;
             }
 
-            context.SetLastResult(transforms.Select(t => t.gameObject));
             return $"Scaled {count} object(s) by ({x}, {y}, {z})";
         }
 
@@ -172,8 +172,39 @@ namespace Commandify
                 count++;
             }
 
-            context.SetLastResult(transforms.Select(t => t.gameObject));
+            context.SetLastResult(children.ToArray());
             return $"Parented {count} object(s) to {parent.name}";
+        }
+
+        private string ShowTransformInfo(List<string> args, CommandContext context)
+        {
+            if (args.Count == 0)
+                throw new ArgumentException("Selector required");
+
+            var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+            if (!objects.Any())
+                return "No objects found";
+
+            context.SetLastResult(objects.ToArray());
+            var result = new List<string>();
+
+            foreach (var obj in objects)
+            {
+                var transform = obj.transform;
+                var parent = transform.parent;
+                string parentInfo = parent != null ? 
+                    $"Parent: {parent.gameObject.name} (Instance ID: {parent.gameObject.GetInstanceID()})" :
+                    "Parent: none";
+
+                result.Add($"GameObject: {obj.name} (Instance ID: {obj.GetInstanceID()})");
+                result.Add($"Position: ({transform.position.x}, {transform.position.y}, {transform.position.z})");
+                result.Add($"Rotation: ({transform.rotation.eulerAngles.x}, {transform.rotation.eulerAngles.y}, {transform.rotation.eulerAngles.z})");
+                result.Add($"Scale: ({transform.localScale.x}, {transform.localScale.y}, {transform.localScale.z})");
+                result.Add(parentInfo);
+                result.Add(""); // Empty line between objects
+            }
+
+            return string.Join("\n", result.Take(result.Count - 1)); // Remove last empty line
         }
 
         private float ParseCoordinate(string value, CommandContext context)
