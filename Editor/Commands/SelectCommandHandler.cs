@@ -3,12 +3,13 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class SelectCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
@@ -31,7 +32,7 @@ namespace Commandify
                         break;
                     default:
                         if (objects == null)
-                            objects = context.ResolveObjectReference(args[i]).ToList();
+                            objects = (await context.ResolveObjectReference(args[i])).ToList();
                         break;
                 }
             }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
@@ -61,7 +62,7 @@ namespace Commandify
             }
         }
 
-        public string ProcessCommand(string commandLine)
+        public async Task<string> ProcessCommandAsync(string commandLine)
         {
             outputBuffer.Clear();
             errorBuffer.Clear();
@@ -74,7 +75,7 @@ namespace Commandify
 
             try
             {
-                string result = ExecuteCommand(commandLine);
+                string result = await ExecuteCommandAsync(commandLine);
 
                 if (!string.IsNullOrEmpty(result))
                 {
@@ -172,7 +173,7 @@ namespace Commandify
             return tokens;
         }
 
-        public string ExecuteCommand(string commandLine) {
+        public async Task<string> ExecuteCommandAsync(string commandLine) {
             var tokens = TokenizeCommand(commandLine);
             if (tokens.Count == 0)
             {
@@ -188,7 +189,7 @@ namespace Commandify
             }
 
             var args = tokens.Skip(1).ToList();
-            return handler.Execute(args, context);
+            return await handler.ExecuteAsync(args, context);
         }
     }
 }

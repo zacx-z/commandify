@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public interface ICommandHandler
     {
-        string Execute(List<string> args, CommandContext context);
+        Task<string> ExecuteAsync(List<string> args, CommandContext context);
     }
 }

@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
@@ -98,17 +99,17 @@ namespace Commandify
             throw new ArgumentException($"Last result is not of type {typeof(T).Name}");
         }
 
-        private object ResolveCommandSubstitution(string reference)
+        private async Task<object> ResolveCommandSubstitution(string reference)
         {
             if (!reference.StartsWith("$(") || !reference.EndsWith(")"))
                 return null;
 
             string command = reference.Substring(2, reference.Length - 3);
-            CommandProcessor.Instance.ExecuteCommand(command);
+            await CommandProcessor.Instance.ExecuteCommandAsync(command);
             return ResolveReference("$~");
         }
 
-        public IEnumerable<UnityEngine.Object> ResolveObjectReference(string reference)
+        public async Task<IEnumerable<UnityEngine.Object>> ResolveObjectReference(string reference)
         {
             if (string.IsNullOrEmpty(reference))
                 throw new ArgumentException("Reference cannot be empty");
@@ -116,7 +117,7 @@ namespace Commandify
             // If it's a variable reference
             if (IsVariable(reference))
             {
-                var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
+                var value = await ResolveCommandSubstitution(reference) ?? GetVariable(reference);
 
                 if (value is IEnumerable<UnityEngine.Object> objects)
                     return objects;

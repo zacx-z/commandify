@@ -3,12 +3,13 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class TransformCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("No transform subcommand specified");
@@ -19,26 +20,26 @@ namespace Commandify
             switch (subCommand.ToLower())
             {
                 case "translate":
-                    return TranslateObjects(subArgs, context);
+                    return await TranslateObjects(subArgs, context);
                 case "rotate":
-                    return RotateObjects(subArgs, context);
+                    return await RotateObjects(subArgs, context);
                 case "scale":
-                    return ScaleObjects(subArgs, context);
+                    return await ScaleObjects(subArgs, context);
                 case "parent":
-                    return ParentObjects(subArgs, context);
+                    return await ParentObjects(subArgs, context);
                 case "show":
-                    return ShowTransformInfo(subArgs, context);
+                    return await ShowTransformInfo(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown transform subcommand: {subCommand}");
             }
         }
 
-        private string TranslateObjects(List<string> args, CommandContext context)
+        private async Task<string> TranslateObjects(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
 
-            var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+            var objects = (await context.ResolveObjectReference(args[0])).OfType<GameObject>();
 
             context.SetLastResult(objects.ToArray());
             // If only selector provided, show current positions
@@ -71,12 +72,12 @@ namespace Commandify
             return $"Translated {count} object(s) by ({x}, {y}, {z})";
         }
 
-        private string RotateObjects(List<string> args, CommandContext context)
+        private async Task<string> RotateObjects(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
 
-            var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+            var objects = (await context.ResolveObjectReference(args[0])).OfType<GameObject>();
 
             context.SetLastResult(objects.ToArray());
 
@@ -109,12 +110,12 @@ namespace Commandify
             return $"Rotated {count} object(s) by ({x}, {y}, {z}) degrees";
         }
 
-        private string ScaleObjects(List<string> args, CommandContext context)
+        private async Task<string> ScaleObjects(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
 
-            var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+            var objects = (await context.ResolveObjectReference(args[0])).OfType<GameObject>();
 
             context.SetLastResult(objects.ToArray());
 
@@ -147,13 +148,13 @@ namespace Commandify
             return $"Scaled {count} object(s) by ({x}, {y}, {z})";
         }
 
-        private string ParentObjects(List<string> args, CommandContext context)
+        private async Task<string> ParentObjects(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Child selector and parent selector required");
 
-            var children = context.ResolveObjectReference(args[0]).OfType<GameObject>();
-            var parents = context.ResolveObjectReference(args[1]).OfType<GameObject>();
+            var children = (await context.ResolveObjectReference(args[0])).OfType<GameObject>();
+            var parents = (await context.ResolveObjectReference(args[1])).OfType<GameObject>();
 
             if (!parents.Any())
                 throw new ArgumentException("No parent objects found");
@@ -176,12 +177,12 @@ namespace Commandify
             return $"Parented {count} object(s) to {parent.name}";
         }
 
-        private string ShowTransformInfo(List<string> args, CommandContext context)
+        private async Task<string> ShowTransformInfo(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
 
-            var objects = context.ResolveObjectReference(args[0]).OfType<GameObject>();
+            var objects = (await context.ResolveObjectReference(args[0])).OfType<GameObject>();
             if (!objects.Any())
                 return "No objects found";
 

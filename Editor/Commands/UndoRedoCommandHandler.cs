@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
@@ -14,7 +15,7 @@ namespace Commandify
             this.command = command;
         }
 
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count > 0 && args[0] == "--help")
                 return "Usage:\n  undo     Undo last operation\n  redo     Redo last undone operation";

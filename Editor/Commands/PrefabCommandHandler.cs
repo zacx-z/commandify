@@ -3,12 +3,13 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class PrefabCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("No prefab subcommand specified");
@@ -19,13 +20,13 @@ namespace Commandify
             switch (subCommand.ToLower())
             {
                 case "create":
-                    return CreatePrefab(subArgs, context);
+                    return await CreatePrefab(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown prefab subcommand: {subCommand}");
             }
         }
 
-        private string CreatePrefab(List<string> args, CommandContext context)
+        private async Task<string> CreatePrefab(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Usage: prefab create [--variant] <selector> <path>");
@@ -59,7 +60,7 @@ namespace Commandify
             if (selector == null || path == null)
                 throw new ArgumentException("Both selector and path must be specified");
 
-            var selectedObjects = context.ResolveObjectReference(selector).ToArray();
+            var selectedObjects = (await context.ResolveObjectReference(selector)).ToArray();
             if (selectedObjects.Length == 0)
                 throw new ArgumentException($"No objects found matching selector: {selector}");
 

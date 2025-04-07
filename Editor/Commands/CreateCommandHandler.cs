@@ -3,12 +3,13 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class CreateCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 return @"Usage: create <name> [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector]
@@ -41,7 +42,7 @@ namespace Commandify
                     else if (arg == "--prefab" && i + 1 < args.Count)
                     {
                         var prefabSelector = args[++i];
-                        var selectedObjects = context.ResolveObjectReference(prefabSelector).ToArray();
+                        var selectedObjects = (await context.ResolveObjectReference(prefabSelector)).ToArray();
                         if (selectedObjects.Length == 0)
                             throw new ArgumentException($"No objects found matching prefab selector: {prefabSelector}");
                         targetPrefab = selectedObjects[0] as GameObject;
@@ -51,7 +52,7 @@ namespace Commandify
                     else if (arg == "--source" && i + 1 < args.Count)
                     {
                         var sourceSelector = args[++i];
-                        var selectedObjects = context.ResolveObjectReference(sourceSelector).ToArray();
+                        var selectedObjects = (await context.ResolveObjectReference(sourceSelector)).ToArray();
                         if (selectedObjects.Length == 0)
                             throw new ArgumentException($"No objects found matching source selector: {sourceSelector}");
                         sourceObject = selectedObjects[0] as GameObject;

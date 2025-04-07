@@ -2,12 +2,13 @@ using UnityEditor;
 using UnityEditor.Search;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class ExecCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 return "Error: Please specify a menu path or --help/--search for options";

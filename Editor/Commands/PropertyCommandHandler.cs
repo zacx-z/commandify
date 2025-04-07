@@ -3,13 +3,14 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Object = UnityEngine.Object;
 
 namespace Commandify
 {
     public class PropertyCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("No property subcommand specified");
@@ -20,22 +21,22 @@ namespace Commandify
             switch (subCommand.ToLower())
             {
                 case "list":
-                    return ListProperties(subArgs, context);
+                    return await ListProperties(subArgs, context);
                 case "get":
-                    return GetProperty(subArgs, context);
+                    return await GetProperty(subArgs, context);
                 case "set":
-                    return SetProperty(subArgs, context);
+                    return await SetProperty(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown property subcommand: {subCommand}");
             }
         }
 
-        private string ListProperties(List<string> args, CommandContext context)
+        private async Task<string> ListProperties(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Object selector required");
 
-            var objects = context.ResolveObjectReference(args[0]).ToList();
+            var objects = (await context.ResolveObjectReference(args[0])).ToList();
             if (!objects.Any())
                 throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
@@ -65,7 +66,7 @@ namespace Commandify
 
         private ObjectFormatter.OutputFormat format = ObjectFormatter.OutputFormat.Default;
 
-        private string GetProperty(List<string> args, CommandContext context)
+        private async Task<string> GetProperty(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Object selector and property path required");
@@ -96,7 +97,7 @@ namespace Commandify
                 }
             }
 
-            var objects = context.ResolveObjectReference(args[0]).ToList();
+            var objects = (await context.ResolveObjectReference(args[0])).ToList();
             if (!objects.Any())
                 throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
@@ -136,12 +137,12 @@ namespace Commandify
             return string.Join("\n", values);
         }
 
-        private string SetProperty(List<string> args, CommandContext context)
+        private async Task<string> SetProperty(List<string> args, CommandContext context)
         {
             if (args.Count < 3)
                 throw new ArgumentException("Object selector, property path, and value required");
 
-            var objects = context.ResolveObjectReference(args[0]).ToList();
+            var objects = (await context.ResolveObjectReference(args[0])).ToList();
             if (!objects.Any())
                 throw new ArgumentException($"No objects found matching selector: {args[0]}");
 
@@ -159,7 +160,7 @@ namespace Commandify
 
                 Undo.RecordObject(obj, "Set Property");
 
-                if (SetPropertyValue(property, value, context))
+                if (await SetPropertyValue(property, value, context))
                 {
                     serializedObject.ApplyModifiedProperties();
                     count++;
@@ -202,7 +203,7 @@ namespace Commandify
             }
         }
 
-        private bool SetPropertyValue(SerializedProperty property, string value, CommandContext context)
+        private async Task<bool> SetPropertyValue(SerializedProperty property, string value, CommandContext context)
         {
             try
             {
@@ -248,7 +249,7 @@ namespace Commandify
                     case SerializedPropertyType.ObjectReference:
                         try
                         {
-                            var resolvedObjects = context.ResolveObjectReference(value).ToList();
+                            var resolvedObjects = (await context.ResolveObjectReference(value)).ToList();
                             if (!resolvedObjects.Any())
                                 throw new ArgumentException($"No objects found for reference: {value}");
                             property.objectReferenceValue = resolvedObjects.First();

@@ -4,12 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class ComponentCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("No component subcommand specified");
@@ -20,9 +21,9 @@ namespace Commandify
             switch (subCommand.ToLower())
             {
                 case "list":
-                    return ListComponents(subArgs, context);
+                    return await ListComponents(subArgs, context);
                 case "add":
-                    return AddComponent(subArgs, context);
+                    return await AddComponent(subArgs, context);
                 case "search":
                     return SearchComponents(subArgs, context);
                 default:
@@ -32,7 +33,7 @@ namespace Commandify
 
         private ObjectFormatter.OutputFormat format = ObjectFormatter.OutputFormat.Default;
 
-        private string ListComponents(List<string> args, CommandContext context)
+        private async Task<string> ListComponents(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Object selector required");
@@ -62,7 +63,7 @@ namespace Commandify
                 }
             }
 
-            var objects = context.ResolveObjectReference(args[0]);
+            var objects = await context.ResolveObjectReference(args[0]);
             var components = new List<string>();
 
             foreach (var obj in objects)
@@ -84,12 +85,12 @@ namespace Commandify
             return string.Join("\n", components);
         }
 
-        private string AddComponent(List<string> args, CommandContext context)
+        private async Task<string> AddComponent(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Object selector and component type required");
 
-            var objects = context.ResolveObjectReference(args[0]);
+            var objects = await context.ResolveObjectReference(args[0]);
             string componentType = args[1];
             componentType = context.ResolveStringReference(componentType);
 

@@ -6,12 +6,13 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class AssetCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("No asset subcommand specified");
@@ -30,7 +31,7 @@ namespace Commandify
                 case "create-types":
                     return ListCreateTypes();
                 case "thumbnail":
-                    return GetThumbnails(subArgs, context);
+                    return await GetThumbnails(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown asset subcommand: {subCommand}");
             }
@@ -126,12 +127,12 @@ namespace Commandify
             return string.Join("\n", types);
         }
 
-        private string GetThumbnails(List<string> args, CommandContext context)
+        private async Task<string> GetThumbnails(List<string> args, CommandContext context)
         {
             if (args.Count < 1)
                 throw new ArgumentException("No selector specified for thumbnail command");
 
-            var objects = context.ResolveObjectReference(args[0]).ToList();
+            var objects = (await context.ResolveObjectReference(args[0])).ToList();
             if (!objects.Any())
                 return "No objects found matching selector";
 

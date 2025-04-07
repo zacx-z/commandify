@@ -3,13 +3,14 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class HelpCommandHandler : ICommandHandler {
         private const string DocumentationPath = "Packages/com.nelasystem.commandify/Documentation";
 
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             // If a specific command is provided, show detailed help for that command
             if (args.Count > 0)

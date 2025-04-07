@@ -2,12 +2,13 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Commandify
 {
     public class VariableCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count < 2)
                 throw new ArgumentException("Variable name and value required");
@@ -25,7 +26,7 @@ namespace Commandify
             }
             else
             {
-                value = context.ResolveObjectReference(valueStr).ToArray();
+                value = (await context.ResolveObjectReference(valueStr)).ToArray();
             }
 
             context.SetVariable(name, value);

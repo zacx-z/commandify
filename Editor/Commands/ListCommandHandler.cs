@@ -1,16 +1,16 @@
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Object = UnityEngine.Object;
 
 namespace Commandify
 {
     public class ListCommandHandler : ICommandHandler
     {
-        public string Execute(List<string> args, CommandContext context)
+        public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
                 throw new ArgumentException("Selector required");
@@ -54,7 +54,7 @@ namespace Commandify
                             filterPattern = context.ResolveStringReference(args[i]);
                         break;
                     default:
-                        objects = context.ResolveObjectReference(arg);
+                        objects = await context.ResolveObjectReference(arg);
                         break;
                 }
             }
