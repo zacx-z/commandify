@@ -1,38 +1,70 @@
-# Scene Commands
+# Scene Management Commands
 
-Commands for managing Unity scenes.
+## SYNOPSIS
+```bash
+scene <command> [<args>]
+```
 
-## Commands
+## DESCRIPTION
+Manage Unity scenes. Supports listing, opening, creating, saving, unloading and activating scenes.
 
-### `scene list [--opened | --all | --active]`
-Lists scenes based on the specified flag:
-- `--opened`: Lists currently opened scenes
-- `--all`: Lists all scenes in the project
-- `--active`: Shows the currently active scene
-If no flag is specified, lists opened scenes.
+### Commands
 
-### `scene open [--additive] <path>`
+#### list
+```bash
+scene list [--opened | --all | --active]
+```
+Lists scenes based on the specified flag.
+
+Options:
+- `--opened` - Lists currently opened scenes (default)
+- `--all` - Lists all scenes in the project
+- `--active` - Shows the currently active scene
+
+#### open
+```bash
+scene open [--additive] <path>
+```
 Opens a scene at the specified path.
-- `--additive`: Opens the scene additively (without closing current scenes)
-- `<path>`: Path to the scene file (relative to Assets folder)
 
-### `scene new [<scene-template-name>]`
+Options:
+- `--additive` - Opens the scene additively (without closing current scenes)
+- `<path>` - Path to the scene file (relative to Assets folder)
+
+#### new
+```bash
+scene new [<scene-template-name>]
+```
 Creates a new scene.
-- `<scene-template-name>`: Optional template to use for the new scene
 
-### `scene save`
+Options:
+- `<scene-template-name>` - Optional template to use for the new scene
+
+#### save
+```bash
+scene save
+```
 Saves all currently opened scenes.
 
-### `scene unload <scene-specifier>...`
+#### unload
+```bash
+scene unload <scene-specifier>...
+```
 Unloads one or more scenes.
-- `<scene-specifier>`: Name, path, or index of scene(s) to unload
 
-### `scene activate <scene-specifier>`
+Options:
+- `<scene-specifier>` - Name, path, or index of scene(s) to unload
+
+#### activate
+```bash
+scene activate <scene-specifier>
+```
 Sets the specified scene as the active scene.
-- `<scene-specifier>`: Name, path, or index of the scene to activate
 
-## Examples
+Options:
+- `<scene-specifier>` - Name, path, or index of the scene to activate
 
+## EXAMPLES
 ```bash
 # List all scenes in project
 scene list --all
@@ -52,3 +84,8 @@ scene unload Level1 Level2
 # Activate a specific scene
 scene activate Level1
 ```
+
+## SEE ALSO
+- `create` - Scene creation commands
+- `property` - Property management commands
+- `transform` - Transform operations

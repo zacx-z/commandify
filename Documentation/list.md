@@ -18,6 +18,7 @@ Lists objects matching the given selector. Can show components and format output
 ## EXAMPLES
 ```bash
 # Basic listing
+list ^*                      # List all root GameObjects
 list ^Canvas/Panel/*          # List all objects under Panel
 list Assets/Prefabs/*        # List all prefabs in directory
 
@@ -26,7 +27,7 @@ list ^Cube --components      # List Cube with its components
 list ^Enemy* --components   # List all enemies and their components
 
 # Format output
-list Assets/* --format path  # List assets with full paths
+list Assets/** --format path  # List all assets with full paths
 list ^UI/* --format name    # List UI objects by name only
 
 # Filter results
