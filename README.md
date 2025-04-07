@@ -133,7 +133,6 @@ transform scale selected 2 2 2      # Double the size
 ### Editor Operations
 - `package list` - List installed packages
 - `package install <package-name>` - Install package
-- `settings set/get <setting-path> <value>` - Manage settings
 - `exec <menu-path>` - Execute menu item
 - `exec --search [pattern]` - Search menu items by pattern
 - `run <script-path> [<options>]` - Execute a commandify script file

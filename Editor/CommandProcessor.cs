@@ -36,7 +36,6 @@ namespace Commandify
                 { "transform", new TransformCommandHandler() },
                 { "set", new VariableCommandHandler() },
                 { "package", new PackageCommandHandler() },
-                { "settings", new SettingsCommandHandler() },
                 { "exec", new ExecCommandHandler() },
                 { "undo", new UndoRedoCommandHandler("undo") },
                 { "redo", new UndoRedoCommandHandler("redo") }
