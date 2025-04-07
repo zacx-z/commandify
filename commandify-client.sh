@@ -130,39 +130,58 @@ while true; do
     fi
 
     # Check for help command
-    if [[ "$cmd" == "help" ]]; then
-        echo "Available Commands:"
-        echo "Scene Management:"
-        echo "  scene list [--opened | --all | --active]"
-        echo "  scene open [--additive] <path>"
-        echo "  scene new [<scene-template-name>]"
-        echo "  scene save"
-        echo "  scene unload <scene-specifier>..."
-        echo "  scene activate <scene-specifier>"
-        echo
-        echo "Asset Operations:"
-        echo "  asset list [--filter <filterspec> | --recursive] <path>"
-        echo "  asset create <type> <path>"
-        echo "  asset move <path> <new-path>"
-        echo "  asset create-types"
-        echo
-        echo "Prefab Operations:"
-        echo "  prefab instantiate <hierarchy-path>"
-        echo "  prefab create [--variant] <selector> <path>"
-        echo
-        echo "View Operations:"
-        echo "  list [--filter <filterspec>] [--path] <selector>"
-        echo
-        echo "Edit Operations:"
-        echo "  select [--add] [--children] <selector>"
-        echo "  property <command> <selector> [<args>]"
-        echo "  component <command> <selector> [<args>]"
-        echo "  transform <command> <selector> [<args>]"
-        echo
-        echo "Script Operations:"
-        echo "  run <script-path> [<options>]  Execute a bash script with optional arguments"
-        echo
-        echo "Type 'exit' to quit"
+    IFS=' ' read -ra args <<< "$cmd"
+    if [[ "${args[0]}" == "help" ]]; then
+        arg1="${args[1]}"
+        if [[ -n "$arg1" ]]; then
+            # Show detailed help for specific command
+            doc_file="Documentation/${arg1}.md"
+            if [[ -f "$doc_file" ]]; then
+                cat "$doc_file"
+            else
+                echo "No detailed help available for '${arg1}'"
+                echo "Try 'help' for a list of commands"
+            fi
+        else
+            # Show general help
+            echo "Available Commands:"
+            echo "Scene Management:"
+            echo "  scene list [--opened | --all | --active]"
+            echo "  scene open [--additive] <path>"
+            echo "  scene new [<scene-template-name>]"
+            echo "  scene save"
+            echo "  scene unload <scene-specifier>..."
+            echo "  scene activate <scene-specifier>"
+            echo
+            echo "Asset Operations:"
+            echo "  prefab create <name> [<selector>]"
+            echo "  prefab instantiate <path> [<parent-selector>]"
+            echo "  create <type> <name> [<parent-selector>]"
+            echo "  list [--children] [<selector>]"
+            echo
+            echo "Edit Operations:"
+            echo "  select [--add] [--children] <selector>"
+            echo "  property <command> <selector> [<args>]"
+            echo "  component <command> <selector> [<args>]"
+            echo "  transform <command> <selector> [<args>]"
+            echo
+            echo "Script Operations:"
+            echo "  run <script-path> [<options>]  Execute a bash script with optional arguments"
+            echo
+            echo "Commands with detailed documentation:"
+            for doc in Documentation/*.md; do
+                if [[ -f "$doc" ]]; then
+                    cmd_name=$(basename "$doc" .md)
+                    # Skip special documentation files
+                    if [[ "$cmd_name" != "primitive-scripts" && "$cmd_name" != "selectors" && "$cmd_name" != "unity-builtin-assets" ]]; then
+                        echo "  $cmd_name"
+                    fi
+                fi
+            done
+            echo
+            echo "Use 'help <command>' for detailed help on a specific command"
+            echo "Type 'exit' to quit"
+        fi
         continue
     fi
 
