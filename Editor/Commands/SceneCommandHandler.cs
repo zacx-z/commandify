@@ -46,36 +46,51 @@ namespace Commandify
             bool showActive = args.Contains("--active");
             bool showAll = !showBuild && !showOpened && !showActive;
 
-            if (showBuild)
+            var buildScenes = EditorBuildSettings.scenes;
+            var openedScenes = Enumerable.Range(0, EditorSceneManager.sceneCount)
+                .Select(i => EditorSceneManager.GetSceneAt(i))
+                .ToList();
+            var activeScene = EditorSceneManager.GetActiveScene();
+
+            IEnumerable<string> scenePaths
+                = showBuild ? buildScenes.Select(s => s.path)
+                : showOpened ? openedScenes.Select(s => s.path)
+                : showActive ? new[] { activeScene.path }
+                : AssetDatabase.FindAssets("t:Scene").Select(AssetDatabase.GUIDToAssetPath);
+
+            int maxBuildIndex = buildScenes.Length - 1;
+            int padding = maxBuildIndex.ToString().Length;
+
+            foreach (var path in scenePaths)
             {
-                for (int i = 0; i < EditorBuildSettings.scenes.Length; i++)
+                var prefixes = new List<string>();
+                var buildIndex = Array.FindIndex(buildScenes, s => s.path == path);
+                if (buildIndex != -1)
                 {
-                    var scene = EditorBuildSettings.scenes[i];
-                    scenes.Add($"[Build {i}] {scene.path} ({(scene.enabled ? "Enabled" : "Disabled")})");
+                    prefixes.Add($"Build {buildIndex.ToString().PadLeft(padding)} ({(buildScenes[buildIndex].enabled ? "Enabled" : "Disabled")})");
+                }
+
+                var openedScene = openedScenes.FirstOrDefault(s => s.path == path);
+                if (openedScene.IsValid())
+                {
+                    prefixes.Add(openedScene.isLoaded ? "Loaded" : "Unloaded");
+                    if (openedScene == activeScene)
+                    {
+                        prefixes.Add("Active");
+                    }
+                }
+
+                if (prefixes.Any())
+                {
+                    scenes.Add($"[{string.Join(", ", prefixes)}] {path}");
+                }
+                else
+                {
+                    scenes.Add(path);
                 }
             }
-            else if (showOpened)
-            {
-                for (int i = 0; i < EditorSceneManager.sceneCount; i++)
-                {
-                    var scene = EditorSceneManager.GetSceneAt(i);
-                    scenes.Add($"[Loaded] {scene.path}");
-                }
-            }
-            else if (showActive)
-            {
-                var activeScene = EditorSceneManager.GetActiveScene();
-                scenes.Add($"[Active] {activeScene.path}");
-            }
-            else
-            {
-                var guids = AssetDatabase.FindAssets("t:Scene");
-                foreach (var guid in guids)
-                {
-                    string path = AssetDatabase.GUIDToAssetPath(guid);
-                    scenes.Add($"[Asset] {path}");
-                }
-            }
+
+            scenes.Sort();
 
             return scenes.Any() ? string.Join("\n", scenes) : "No scenes found";
         }
