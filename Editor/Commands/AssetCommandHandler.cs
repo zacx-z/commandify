@@ -28,6 +28,14 @@ namespace Commandify
                     return CreateAsset(subArgs, context);
                 case "move":
                     return MoveAsset(subArgs, context);
+                case "mkdir":
+                    return MakeDirectory(subArgs, context);
+                case "delete":
+                case "rm":
+                    return DeleteAssets(subArgs, context);
+                case "duplicate":
+                case "cp":
+                    return DuplicateAssets(subArgs, context);
                 case "create-types":
                     return ListCreateTypes();
                 case "thumbnail":
@@ -96,25 +104,40 @@ namespace Commandify
             if (!destPath.StartsWith("Assets/"))
                 destPath = "Assets/" + destPath.TrimStart('/');
 
-            if (!File.Exists(sourcePath))
-                throw new ArgumentException($"Source asset not found: {sourcePath}");
+            // Check if source exists (either as file or directory)
+            bool isDirectory = Directory.Exists(sourcePath);
+            bool isFile = File.Exists(sourcePath);
+
+            if (!isDirectory && !isFile)
+                throw new ArgumentException($"Source path not found: {sourcePath}");
+
+            // If source is a directory and destination doesn't specify a name,
+            // use the source directory name
+            if (isDirectory && destPath.EndsWith("/"))
+                destPath = Path.Combine(destPath, Path.GetFileName(sourcePath.TrimEnd('/')));
 
             // Ensure destination directory exists
-            string destDir = Path.GetDirectoryName(destPath);
-            if (!Directory.Exists(destDir))
+            string destDir = isDirectory ? Path.GetDirectoryName(destPath.TrimEnd('/')) : Path.GetDirectoryName(destPath);
+            if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
                 Directory.CreateDirectory(destDir);
 
+            // Use AssetDatabase.MoveAsset which handles both files and directories
             string error = AssetDatabase.MoveAsset(sourcePath, destPath);
             if (!string.IsNullOrEmpty(error))
                 throw new Exception($"Failed to move asset: {error}");
 
             AssetDatabase.Refresh();
 
-            // Store the moved asset in the result variable
-            var movedAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(destPath);
-            context.SetLastResult(movedAsset);
+            // Store the moved asset in the result variable if it's a file
+            if (isFile)
+            {
+                var movedAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(destPath);
+                if (movedAsset != null)
+                    context.SetLastResult(movedAsset);
+            }
 
-            return $"Moved asset from {sourcePath} to {destPath}";
+            string assetType = isDirectory ? "directory" : "asset";
+            return $"Moved {assetType} from {sourcePath} to {destPath}";
         }
 
         private string ListCreateTypes()
@@ -251,6 +274,175 @@ namespace Commandify
 
             var formattedAssets = loadedAssets.Select(a => ObjectFormatter.FormatObject(a, outputFormat));
             return string.Join("\n", formattedAssets);
+        }
+
+        private string MakeDirectory(List<string> args, CommandContext context)
+        {
+            if (args.Count < 1)
+                throw new ArgumentException("Directory path required");
+
+            string path = args[0];
+            path = context.ResolveStringReference(path);
+            path = path.Replace('\\', '/');
+
+            if (!path.StartsWith("Assets/"))
+                path = "Assets/" + path.TrimStart('/');
+
+            if (Directory.Exists(path))
+                throw new ArgumentException($"Directory already exists: {path}");
+
+            Directory.CreateDirectory(path);
+            AssetDatabase.Refresh();
+
+            return $"Created directory: {path}";
+        }
+
+        private string DeleteAssets(List<string> args, CommandContext context)
+        {
+            if (args.Count < 1)
+                throw new ArgumentException("At least one path required");
+
+            var deleted = new List<string>();
+            var errors = new List<string>();
+
+            foreach (string path in args)
+            {
+                string resolvedPath = context.ResolveStringReference(path);
+                resolvedPath = resolvedPath.Replace('\\', '/');
+                if (!resolvedPath.StartsWith("Assets/"))
+                    resolvedPath = "Assets/" + resolvedPath.TrimStart('/');
+
+                bool isDirectory = Directory.Exists(resolvedPath);
+                bool isFile = File.Exists(resolvedPath);
+
+                if (!isDirectory && !isFile)
+                {
+                    errors.Add($"Path not found: {resolvedPath}");
+                    continue;
+                }
+
+                try
+                {
+                    if (isDirectory)
+                    {
+                        if (Directory.EnumerateFileSystemEntries(resolvedPath).Any())
+                        {
+                            // Directory is not empty, use FileUtil.DeleteFileOrDirectory which can handle non-empty directories
+                            FileUtil.DeleteFileOrDirectory(resolvedPath);
+                            FileUtil.DeleteFileOrDirectory(resolvedPath + ".meta");
+                        }
+                        else
+                        {
+                            Directory.Delete(resolvedPath);
+                            File.Delete(resolvedPath + ".meta");
+                        }
+                    }
+                    else
+                    {
+                        AssetDatabase.DeleteAsset(resolvedPath);
+                    }
+                    deleted.Add(resolvedPath);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Failed to delete {resolvedPath}: {ex.Message}");
+                }
+            }
+
+            AssetDatabase.Refresh();
+
+            var result = new StringBuilder();
+            if (deleted.Any())
+                result.AppendLine($"Deleted {deleted.Count} items:\n  " + string.Join("\n  ", deleted));
+            if (errors.Any())
+                result.AppendLine($"\nErrors ({errors.Count}):\n  " + string.Join("\n  ", errors));
+
+            return result.ToString().TrimEnd();
+        }
+
+        private string DuplicateAssets(List<string> args, CommandContext context)
+        {
+            if (args.Count < 2 || args.Count % 2 != 0)
+                throw new ArgumentException("Must provide source-target pairs");
+
+            var duplicated = new List<string>();
+            var errors = new List<string>();
+
+            for (int i = 0; i < args.Count; i += 2)
+            {
+                string sourcePath = context.ResolveStringReference(args[i]);
+                string targetPath = context.ResolveStringReference(args[i + 1]);
+
+                sourcePath = sourcePath.Replace('\\', '/');
+                targetPath = targetPath.Replace('\\', '/');
+
+                if (!sourcePath.StartsWith("Assets/"))
+                    sourcePath = "Assets/" + sourcePath.TrimStart('/');
+                if (!targetPath.StartsWith("Assets/"))
+                    targetPath = "Assets/" + targetPath.TrimStart('/');
+
+                bool isDirectory = Directory.Exists(sourcePath);
+                bool isFile = File.Exists(sourcePath);
+
+                if (!isDirectory && !isFile)
+                {
+                    errors.Add($"Source path not found: {sourcePath}");
+                    continue;
+                }
+
+                try
+                {
+                    if (isDirectory)
+                    {
+                        // If target ends with slash, use source directory name
+                        if (targetPath.EndsWith("/"))
+                            targetPath = Path.Combine(targetPath, Path.GetFileName(sourcePath.TrimEnd('/')));
+
+                        // Ensure target parent directory exists
+                        string targetParent = Path.GetDirectoryName(targetPath.TrimEnd('/'));
+                        if (!string.IsNullOrEmpty(targetParent) && !Directory.Exists(targetParent))
+                            Directory.CreateDirectory(targetParent);
+
+                        // Use FileUtil.CopyFileOrDirectory which preserves meta files
+                        FileUtil.CopyFileOrDirectory(sourcePath, targetPath);
+                        FileUtil.CopyFileOrDirectory(sourcePath + ".meta", targetPath + ".meta");
+                    }
+                    else
+                    {
+                        // Ensure target directory exists
+                        string targetDir = Path.GetDirectoryName(targetPath);
+                        if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+                            Directory.CreateDirectory(targetDir);
+
+                        if (!AssetDatabase.CopyAsset(sourcePath, targetPath))
+                            throw new Exception("Failed to copy asset");
+                    }
+
+                    duplicated.Add($"{sourcePath} -> {targetPath}");
+
+                    // Store the last duplicated asset in the result variable if it's a file
+                    if (isFile)
+                    {
+                        var duplicatedAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(targetPath);
+                        if (duplicatedAsset != null)
+                            context.SetLastResult(duplicatedAsset);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Failed to duplicate {sourcePath} to {targetPath}: {ex.Message}");
+                }
+            }
+
+            AssetDatabase.Refresh();
+
+            var result = new StringBuilder();
+            if (duplicated.Any())
+                result.AppendLine($"Duplicated {duplicated.Count} items:\n  " + string.Join("\n  ", duplicated));
+            if (errors.Any())
+                result.AppendLine($"\nErrors ({errors.Count}):\n  " + string.Join("\n  ", errors));
+
+            return result.ToString().TrimEnd();
         }
     }
 }
