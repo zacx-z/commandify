@@ -136,21 +136,28 @@ namespace Commandify
             if (!objects.Any())
                 return "No objects found matching selector";
 
-            var thumbnails = new List<string>();
+            var thumbnails = new List<(string name, string data)>();
             foreach (var obj in objects)
             {
-                var texture = AssetPreview.GetAssetPreview(obj); // FIXME The preview may be loading. Use `AssetPreview.IsLoadingAssetPreview()` to check whether to wait before returning the result.
+                var texture = AssetPreview.GetAssetPreview(obj);
+                if (texture == null) {
+                    while (AssetPreview.IsLoadingAssetPreview(obj.GetInstanceID()))
+                    {
+                        await MainThreadUtility.Delay(100); // Wait for 100ms before checking again
+                    }
+                    texture = AssetPreview.GetAssetPreview(obj);
+                }
                 if (texture != null)
                 {
                     byte[] bytes = texture.EncodeToPNG();
                     if (bytes != null && bytes.Length > 0)
                     {
                         string base64 = Convert.ToBase64String(bytes);
-                        thumbnails.Add(base64);
+                        thumbnails.Add((obj.name, $"data:image/png;base64,{base64}"));
                     }
                 }
                 else
-                    UnityEngine.Debug.LogWarning($"No thumbnail available for {obj}");
+                    thumbnails.Add((obj.name, "No thumbnail available"));
             }
 
             if (!thumbnails.Any())
@@ -159,7 +166,7 @@ namespace Commandify
             // Store the thumbnails in the result variable
             context.SetLastResult(thumbnails);
 
-            return string.Join("\n", thumbnails);
+            return string.Join("\n", thumbnails.Select(t => $"{t.name}:\n{t.data}"));
         }
 
         private string SearchAssets(List<string> args, CommandContext context)

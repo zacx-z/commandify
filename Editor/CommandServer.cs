@@ -151,39 +151,13 @@ namespace Commandify
             try
             {
                 // Execute on main thread since we're dealing with Unity API
-                return await await ExecuteOnMainThread(() => CommandProcessor.Instance.ProcessCommandAsync(command));
+                return await await MainThreadUtility.ExecuteOnMainThread(() => CommandProcessor.Instance.ProcessCommandAsync(command));
             }
             catch (Exception ex)
             {
                 // Prefix error with @E: for stderr
                 return $"@E:{ex.Message}";
             }
-        }
-
-        private Task<T> ExecuteOnMainThread<T>(Func<T> action)
-        {
-            var tcs = new TaskCompletionSource<T>();
-            bool executed = false;
-
-            EditorApplication.update += OnUpdate;
-
-            void OnUpdate()
-            {
-                if (executed) return;
-                executed = true;
-                EditorApplication.update -= OnUpdate;
-
-                try
-                {
-                    tcs.TrySetResult(action());
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-            }
-
-            return tcs.Task;
         }
 
         [InitializeOnLoadMethod]
