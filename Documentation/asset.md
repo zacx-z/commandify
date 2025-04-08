@@ -10,6 +10,21 @@ Manage Unity assets in the project. Supports searching and generating thumbnails
 
 ### Commands
 
+#### create
+```bash
+asset create [--overwrite] [<type>] <path> [--uri <uri>]
+```
+Creates a new asset in the project. If no type is specified, it will be inferred from the file extension or URI content.
+
+Options:
+- `<type>` - Optional type of asset to create (e.g., TextAsset, Texture2D, ScriptableObject)
+- `<path>` - Path where the asset should be created
+- `--uri <uri>` - URI to fetch content from. Supports:
+  - HTTP(S) URLs (e.g., `https://example.com/file.txt`)
+  - Data URIs (e.g., `data:text/plain,hello%20world`)
+  - File URIs (e.g., `file:///Users/nickname/Downloads/logo.png`)
+- `--overwrite` - Allow overwriting existing assets
+
 #### search
 ```bash
 asset search [--format <format>] <query>
@@ -74,6 +89,17 @@ Options:
 ```bash
 # Search for materials
 asset search --format path t:Material
+
+# Create assets from URLs
+asset create Assets/Content/readme.md --uri https://raw.githubusercontent.com/example/readme.md
+asset create Assets/Textures/logo.png --uri https://example.com/logo.png --overwrite
+
+# Create assets with inline data
+asset create Assets/data.txt --uri "data:text/plain,hello world"
+
+# Create typed assets
+asset create TextAsset Assets/empty.txt
+asset create GameSettings Assets/settings.asset
 
 # Create a new directory
 asset mkdir Assets/NewFolder

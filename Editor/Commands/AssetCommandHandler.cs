@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Commandify
@@ -45,43 +44,256 @@ namespace Commandify
             }
         }
 
+        private async Task<string> DownloadFromUri(string uri)
+        {
+            using (var client = new System.Net.Http.HttpClient())
+            {
+                try
+                {
+                    return await client.GetStringAsync(uri);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Failed to download content from {uri}: {ex.Message}");
+                }
+            }
+        }
+
         private string CreateAsset(List<string> args, CommandContext context)
         {
-            if (args.Count < 2)
-                throw new ArgumentException("Asset type and path required");
+            if (args.Count < 1)
+                throw new ArgumentException("Asset path required");
 
-            string assetType = args[0];
-            string path = args[1];
+            string assetType = null;
+            string path = null;
+            string uri = null;
+            bool overwrite = false;
+            int currentArg = 0;
 
-            // Handle variable references
-            assetType = context.ResolveStringReference(assetType);
-            path = context.ResolveStringReference(path);
+            // Parse options and arguments
+            while (currentArg < args.Count)
+            {
+                string arg = args[currentArg];
+                switch (arg)
+                {
+                    case "--overwrite":
+                        overwrite = true;
+                        currentArg++;
+                        break;
+                    case "--uri":
+                        if (currentArg + 1 >= args.Count)
+                            throw new ArgumentException("--uri requires a value");
+                        uri = context.ResolveStringReference(args[++currentArg]);
+                        currentArg++;
+                        break;
+                    default:
+                        if (path == null)
+                        {
+                            // If this is the first non-option argument and it doesn't contain a dot or slash,
+                            // treat it as the asset type
+                            if (assetType == null && !arg.Contains(".") && !arg.Contains("/"))
+                            {
+                                assetType = context.ResolveStringReference(arg);
+                                currentArg++;
+                            }
+                            else
+                            {
+                                path = context.ResolveStringReference(arg);
+                                currentArg++;
+                            }
+                        }
+                        else
+                            throw new ArgumentException($"Unexpected argument: {arg}");
+                        break;
+                }
+            }
+
+            if (path == null)
+                throw new ArgumentException("Asset path required");
 
             path = path.Replace('\\', '/');
             if (!path.StartsWith("Assets/"))
                 path = "Assets/" + path.TrimStart('/');
+
+            // Check if asset already exists
+            if (File.Exists(path) && !overwrite)
+                throw new ArgumentException($"Asset already exists at {path}. Use --overwrite to replace it.");
 
             // Ensure directory exists
             string directory = Path.GetDirectoryName(path);
             if (!Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
-            // Create the asset
-            ScriptableObject asset = null;
-            var type = TypeCache.GetTypesDerivedFrom<ScriptableObject>()
-                .FirstOrDefault(t => t.Name.Equals(assetType, StringComparison.OrdinalIgnoreCase));
+            // Create or overwrite the asset
+            UnityEngine.Object asset = null;
+            string extension = Path.GetExtension(path).ToLower();
 
-            if (type == null)
-                throw new ArgumentException($"Unknown asset type: {assetType}");
+            // If no type is specified, try to infer it from extension or URI
+            if (assetType == null)
+            {
+                assetType = extension switch
+                {
+                    ".txt" or ".json" or ".xml" or ".md" or ".csv" or ".yaml" or ".yml" => "TextAsset",
+                    ".png" or ".jpg" or ".jpeg" or ".gif" or ".tga" or ".bmp" => "Texture2D",
+                    ".fbx" or ".obj" or ".3ds" or ".dae" => "Model",
+                    ".mat" => "Material",
+                    ".anim" => "AnimationClip",
+                    ".prefab" => "GameObject",
+                    ".unity" => "SceneAsset",
+                    ".asset" => "ScriptableObject",
+                    ".shader" => "Shader",
+                    ".mixer" => "AudioMixer",
+                    ".controller" => "AnimatorController",
+                    ".ttf" or ".otf" => "Font",
+                    _ => uri != null ? "TextAsset" : null // Default to TextAsset if URI is provided
+                };
+            }
 
-            asset = ScriptableObject.CreateInstance(type);
-            AssetDatabase.CreateAsset(asset, path);
+            try
+            {
+                if (uri != null)
+                {
+                    if (uri.StartsWith("data:"))
+                    {
+                        // Handle data URI
+                        var parts = uri.Split(new[] { ',' }, 2);
+                        if (parts.Length != 2)
+                            throw new ArgumentException("Invalid data URI format");
+
+                        string mimeType = parts[0].Split(':')[1].Split(';')[0];
+                        string content = parts[1];
+                        byte[] decodedBytes = Convert.FromBase64String(content);
+
+                        if (mimeType.StartsWith("text/"))
+                        {
+                            string decodedContent = Encoding.UTF8.GetString(decodedBytes);
+                            File.WriteAllText(path, decodedContent);
+                        }
+                        else
+                        {
+                            File.WriteAllBytes(path, decodedBytes);
+                        }
+                    }
+                    else if (uri.StartsWith("file://"))
+                    {
+                        // Handle file URI
+                        string filePath = uri.Substring(7);
+                        switch (Application.platform)
+                        {
+                            case RuntimePlatform.OSXPlayer:
+                            case RuntimePlatform.OSXEditor:
+                                // On macOS, file:// URLs might start with localhost
+                                if (filePath.StartsWith("localhost/"))
+                                    filePath = filePath.Substring(9);
+                                break;
+                            case RuntimePlatform.WindowsPlayer:
+                            case RuntimePlatform.WindowsEditor:
+                                // On Windows, remove leading slash and fix drive letter format
+                                if (filePath.StartsWith("/"))
+                                    filePath = filePath.Substring(1);
+                                // Convert potential forward slashes to backslashes
+                                filePath = filePath.Replace("/", "\\");
+                                break;
+                            case RuntimePlatform.LinuxPlayer:
+                            case RuntimePlatform.LinuxEditor:
+                                // Ensure proper Unix-style path
+                                filePath = filePath.Replace("\\", "/");
+                                break;
+                            default:
+                                // For other platforms, keep the path as is
+                                break;
+                        }
+
+                        // Decode percent-encoded characters
+                        filePath = Uri.UnescapeDataString(filePath);
+
+                        if (!File.Exists(filePath))
+                            throw new ArgumentException($"Source file not found: {filePath}");
+
+                        // Determine if we should copy as binary or text based on the target asset type
+                        bool isBinaryType = assetType switch
+                        {
+                            "TextAsset" or "ScriptableObject" or "SceneAsset" or "GameObject" or "Shader" or "Material" or "AnimationClip" or "AnimatorController" or "AudioMixer" => false,
+                            _ => true
+                        };
+
+                        if (isBinaryType)
+                            File.Copy(filePath, path, true);
+                        else
+                            File.WriteAllText(path, File.ReadAllText(filePath));
+                    }
+                    else if (uri.StartsWith("http://") || uri.StartsWith("https://"))
+                    {
+                        // Handle web URI based on inferred type
+                        if (assetType?.ToLower() == "texture2d")
+                        {
+                            var www = new UnityEngine.Networking.UnityWebRequest(uri);
+                            www.downloadHandler = new UnityEngine.Networking.DownloadHandlerTexture();
+                            var operation = www.SendWebRequest();
+                            while (!operation.isDone)
+                                System.Threading.Thread.Sleep(100);
+
+                            if (www.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
+                                throw new Exception($"Failed to download texture: {www.error}");
+
+                            var texture = ((UnityEngine.Networking.DownloadHandlerTexture)www.downloadHandler).texture;
+                            var bytes = UnityEngine.ImageConversion.EncodeToPNG(texture);
+                            File.WriteAllBytes(path, bytes);
+                        }
+                        else
+                        {
+                            // Default to text download for other types
+                            string content = DownloadFromUri(uri).Result;
+                            File.WriteAllText(path, content);
+                        }
+                    }
+                    else
+                        throw new ArgumentException($"Unsupported URI scheme: {uri}");
+
+                    AssetDatabase.ImportAsset(path);
+                    asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                }
+                else if (assetType != null)
+                {
+                    // Create empty asset of specified type
+                    var type = TypeCache.GetTypesDerivedFrom<ScriptableObject>()
+                        .FirstOrDefault(t => t.Name.Equals(assetType, StringComparison.OrdinalIgnoreCase));
+
+                    if (type != null)
+                    {
+                        var scriptableObject = ScriptableObject.CreateInstance(type);
+                        AssetDatabase.CreateAsset(scriptableObject, path);
+                        asset = scriptableObject;
+                    }
+                    else
+                    {
+                        // If type is not a ScriptableObject, create an empty file
+                        File.WriteAllText(path, "");
+                        AssetDatabase.ImportAsset(path);
+                        asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                    }
+                }
+                else
+                {
+                    // No type specified and no URI, create empty file
+                    File.WriteAllText(path, "");
+                    AssetDatabase.ImportAsset(path);
+                    asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (File.Exists(path))
+                    AssetDatabase.DeleteAsset(path);
+                throw new Exception($"Failed to create asset: {ex.Message}");
+            }
+
             AssetDatabase.SaveAssets();
-
-            // Store the created asset in the result variable
             context.SetLastResult(asset);
 
-            return $"Created {assetType} asset at {path}";
+            string action = overwrite ? "Created/Overwrote" : "Created";
+            string typeStr = assetType != null ? $" {assetType}" : "";
+            return $"{action}{typeStr} asset at {path}" + (uri != null ? $" with content from {uri}" : "");
         }
 
         private string MoveAsset(List<string> args, CommandContext context)
