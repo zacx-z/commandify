@@ -16,7 +16,7 @@ mkdir -p "$(dirname "$HISTFILE")"
 touch "$HISTFILE"
 history -r
 
-PORT=12345
+PORT=13999
 HOST=localhost
 SINGLE_COMMAND=""
 
@@ -24,7 +24,7 @@ SINGLE_COMMAND=""
 print_usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  -p, --port PORT      Specify port (default: 12345)"
+    echo "  -p, --port PORT      Specify port (default: 13999)"
     echo "  -h, --host HOST      Specify host (default: localhost)"
     echo "  -c, --command CMD    Run a single command and exit"
     echo "  --help              Show this help message"

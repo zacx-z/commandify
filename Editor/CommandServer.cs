@@ -14,7 +14,7 @@ namespace Commandify
         private TcpListener listener;
         private CancellationTokenSource cancellationTokenSource;
         private bool isRunning;
-        private int port = 12345;
+        private int port = 13999;
 
         private const string AUTO_START_PREF_KEY = "Commandify_AutoStartServer";
         private const string PORT_PREF_KEY = "Commandify_ServerPort";
@@ -37,7 +37,7 @@ namespace Commandify
         private CommandServer()
         {
             // Load saved port from EditorPrefs
-            port = EditorPrefs.GetInt(PORT_PREF_KEY, 12345);
+            port = EditorPrefs.GetInt(PORT_PREF_KEY, 13999);
         }
 
         public void Start()

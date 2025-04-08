@@ -12,7 +12,7 @@ A command-line interface for Unity Editor operations that allows you to control 
 ## Usage
 
 1. Open the Commandify Server window from Window > Commandify > Server Settings
-2. Configure the port if needed (default: 12345)
+2. Configure the port if needed (default: 13999)
 3. Click "Start Server" to begin listening for commands
 4. Connect to the server using either:
    - The included interactive client: `./commandify-client.sh [--port PORT] [--host HOST]`
@@ -20,12 +20,12 @@ A command-line interface for Unity Editor operations that allows you to control 
 
 Example using the interactive client:
 ```bash
-./commandify-client.sh -p 12345 -h localhost
+./commandify-client.sh -p 13999 -h localhost
 ```
 
 Example using netcat:
 ```bash
-echo "scene list --all" | nc localhost 12345
+echo "scene list --all" | nc localhost 13999
 ```
 
 ## Available Commands

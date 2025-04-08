@@ -2,7 +2,7 @@
 
 # Common test utilities for Commandify test scripts
 
-PORT=12345
+PORT=13999
 HOST=localhost
 
 # Helper function to send command and get response
