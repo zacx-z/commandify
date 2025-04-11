@@ -68,13 +68,18 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 ```
 
 ### Asset Operations
-
-- `asset search [--folder folders] [--format format] <query>` - Search for assets using FindAssets
+- `asset search [--format format] <query>` - Search for assets using FindAssets
   - `--folder`: Single folder or array of folders to search in (e.g., `--folder [Assets/Prefabs, Assets/Materials]`)
-  - `--format`: Output format (`path` for full paths, `instance-id` for instance IDs)
-- `asset create <type> <path>` - Create a new asset
-- `asset move <path> <new-path>` - Move/rename asset
-- `asset create-types` - List available asset types
+  - `--format`: Output format (`path` for full paths, `name` for names)
+  - `<query>`: Search term to find matching assets
+- `asset create [--overwrite] [<type>] <path> [--uri <uri>]` - Create a new asset
+  - `<type>`: Optional asset type (e.g., TextAsset, Texture2D)
+  - `--uri`: URI to fetch content from (HTTP, data URI, file URI)
+  - `--overwrite`: Allow overwriting existing assets
+- `asset mkdir <path>` - Create a new directory
+- `asset move <path> <dest-path>` - Move/rename asset or directory
+- `asset delete|rm <path> [<path2> ...]` - Delete assets or directories
+- `asset duplicate|cp <path> <target-path> [<path2> <target-path2> ...]` - Duplicate assets
 - `asset thumbnail <selector>` - Get base64 PNG thumbnails for selected assets
 - `asset read <path> [--encoding encoding] [--max-length length]` - Read file content
 
@@ -96,6 +101,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 - `component <command> <selector> [<args>]` - Manage components
   - `list <selector>` - List components on objects
   - `add <selector> <type>` - Add component to objects
+  - `remove <selector> <component-name>[,component-name,...]` - Remove component(s) from objects
   - `search <pattern> [--base <type>]` - Search for component types by name pattern
     - `pattern`: Wildcard pattern matching component type names (including namespace)
     - `--base`: Optional base type to filter results (e.g., Collider, UI.Selectable)
@@ -135,6 +141,17 @@ transform scale ^Cube 2 2 2      # Double the size
 - `set [--add | --sub] $<varname> <selector>` - Set variables
 - Built-in variable `$~` stores last command result (alternative output form)
 
+### Undo/Redo Operations
+- `undo` - Undo last operation using Unity's built-in Undo system
+- `redo` - Redo last undone operation
+
+### Remove Operations
+- `remove <selector>` - Remove GameObjects from scene or prefab
+  - Works with name patterns: `^MyObject`, `^Temp*`
+  - Works with tags: `@#Enemy`, `@#Pickup`
+  - Works with paths: `^Parent/Child/*`
+  - Can be undone with `undo` command
+
 ### Editor Operations
 - `package list` - List installed packages
 - `package install <package-name>` - Install package
@@ -155,6 +172,10 @@ exec --search "Assets/"  # Search menu items under Assets menu
 # Run commandify scripts
 run scripts/create-cube.sh MyCube     # Create a cube primitive
 run scripts/create-sphere.sh Ball     # Create a sphere primitive
+run scripts/create-capsule.sh Player  # Create a capsule primitive
+run scripts/create-cylinder.sh Pillar # Create a cylinder primitive
+run scripts/create-plane.sh Ground    # Create a plane primitive
+run scripts/create-quad.sh Background # Create a quad primitive
 ```
 
 ## Selector Grammar
