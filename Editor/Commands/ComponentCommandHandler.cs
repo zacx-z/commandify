@@ -26,6 +26,8 @@ namespace Commandify
                     return await AddComponent(subArgs, context);
                 case "search":
                     return SearchComponents(subArgs, context);
+                case "remove":
+                    return await RemoveComponents(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown component subcommand: {subCommand}");
             }
@@ -154,6 +156,38 @@ namespace Commandify
                 return "No components found matching the pattern.";
 
             return string.Join("\n", matchingTypes.Select(t => t.FullName));
+        }
+
+        private async Task<string> RemoveComponents(List<string> args, CommandContext context)
+        {
+            if (args.Count < 2)
+                throw new ArgumentException("Object selector and component name(s) required");
+
+            string selector = args[0];
+            var componentNames = args[1].Split(',').Select(n => n.Trim()).ToList();
+
+            var objects = (await context.ResolveObjectReference(selector)).OfType<GameObject>().ToList();
+            if (!objects.Any())
+                return $"No objects found matching selector: {selector}";
+
+            foreach (var obj in objects)
+            {
+                foreach (var componentName in componentNames)
+                {
+                    var components = obj.GetComponents<Component>()
+                        .Where(c => c != null && c.GetType().Name.Equals(componentName, StringComparison.OrdinalIgnoreCase));
+
+                    foreach (var component in components)
+                    {
+                        if (component is Transform)
+                            continue; // Skip Transform component as it's required
+
+                        Undo.DestroyObjectImmediate(component);
+                    }
+                }
+            }
+
+            return $"Removed {componentNames.Count} component(s) from {objects.Count} object(s)";
         }
     }
 }

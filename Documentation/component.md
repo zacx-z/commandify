@@ -35,6 +35,16 @@ Options:
 - `pattern` - Wildcard pattern matching component type names (including namespace)
 - `--base <type>` - Optional base type to filter results (e.g., Collider, UI.Selectable)
 
+#### remove
+```bash
+component remove <selector> <component-name>[,component-name,...]
+```
+Removes specified components from selected objects.
+
+Options:
+- `selector` - Object selector to find target objects
+- `component-name` - Name of component(s) to remove, comma-separated for multiple
+
 ## EXAMPLES
 ```bash
 # List components
@@ -48,6 +58,11 @@ component add ^Enemy* NavMeshAgent
 # Search for components
 component search "UI.*"
 component search "*" --base Collider
+
+# Remove components
+component remove ^Player BoxCollider
+component remove ^UI/* Image,Button
+component remove ^Enemy* NavMeshAgent,AudioSource
 ```
 
 ## SEE ALSO
