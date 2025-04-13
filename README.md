@@ -67,6 +67,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 ```
 
 ### Asset Operations
+
 - `asset search [--folder folders] [--format format] <query>` - Search for assets using FindAssets
   - `--folder`: Single folder or array of folders to search in (e.g., `--folder [Assets/Prefabs, Assets/Materials]`)
   - `--format`: Output format (`path` for full paths, `instance-id` for instance IDs)
@@ -74,6 +75,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 - `asset move <path> <new-path>` - Move/rename asset
 - `asset create-types` - List available asset types
 - `asset thumbnail <selector>` - Get base64 PNG thumbnails for selected assets
+- `asset read <path> [--encoding encoding] [--max-length length]` - Read file content
 
 ### Prefab Operations
 - `prefab create [--variant] <selector> <path>` - Create prefab or prefab variant

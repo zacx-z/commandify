@@ -39,6 +39,8 @@ namespace Commandify
                     return ListCreateTypes();
                 case "thumbnail":
                     return await GetThumbnails(subArgs, context);
+                case "read":
+                    return await ReadAsset(subArgs, context);
                 default:
                     throw new ArgumentException($"Unknown asset subcommand: {subCommand}");
             }
@@ -655,6 +657,120 @@ namespace Commandify
                 result.AppendLine($"\nErrors ({errors.Count}):\n  " + string.Join("\n  ", errors));
 
             return result.ToString().TrimEnd();
+        }
+        private async Task<string> ReadAsset(List<string> args, CommandContext context)
+        {
+            if (args.Count < 1)
+                throw new ArgumentException("Asset path required");
+
+            string encoding = "utf-8";
+            int? maxLength = null;
+            string path = null;
+            int currentArg = 0;
+
+            // Parse options and arguments
+            while (currentArg < args.Count)
+            {
+                string arg = args[currentArg];
+                switch (arg)
+                {
+                    case "--encode":
+                        if (currentArg + 1 >= args.Count)
+                            throw new ArgumentException("--encode requires a value");
+                        encoding = context.ResolveStringReference(args[++currentArg]).ToLower();
+                        if (!new[] { "utf-8", "base64", "hex" }.Contains(encoding))
+                            throw new ArgumentException($"Invalid encoding: {encoding}");
+                        currentArg++;
+                        break;
+                    case "--truncate":
+                        if (currentArg + 1 >= args.Count)
+                            throw new ArgumentException("--truncate requires a value");
+                        if (!int.TryParse(context.ResolveStringReference(args[++currentArg]), out int length))
+                            throw new ArgumentException("--truncate value must be a number");
+                        maxLength = length;
+                        currentArg++;
+                        break;
+                    default:
+                        if (path == null)
+                        {
+                            path = context.ResolveStringReference(arg);
+                            currentArg++;
+                        }
+                        else
+                            throw new ArgumentException($"Unexpected argument: {arg}");
+                        break;
+                }
+            }
+
+            if (path == null)
+                throw new ArgumentException("Asset path required");
+
+            path = path.Replace('\\', '/');
+            if (!path.StartsWith("Assets/"))
+                path = "Assets/" + path.TrimStart('/');
+
+            if (!File.Exists(path))
+                throw new ArgumentException($"File not found: {path}");
+
+            string result = "";
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                int bufferSize = 4096;
+                byte[] buffer = new byte[bufferSize];
+                StringBuilder sb = new StringBuilder();
+                int bytesRead;
+
+                switch (encoding)
+                {
+                    case "base64":
+                        using (var ms = new MemoryStream())
+                        {
+                            while ((bytesRead = await stream.ReadAsync(buffer, 0, bufferSize)) > 0)
+                            {
+                                if (maxLength.HasValue && ms.Length + bytesRead > maxLength.Value)
+                                {
+                                    await ms.WriteAsync(buffer, 0, maxLength.Value - (int)ms.Length);
+                                    break;
+                                }
+                                await ms.WriteAsync(buffer, 0, bytesRead);
+                            }
+                            result = Convert.ToBase64String(ms.ToArray());
+                        }
+                        break;
+                    case "hex":
+                        while ((bytesRead = await stream.ReadAsync(buffer, 0, bufferSize)) > 0)
+                        {
+                            for (int i = 0; i < bytesRead; i++)
+                            {
+                                sb.Append(buffer[i].ToString("x2"));
+                                if (maxLength.HasValue && sb.Length >= maxLength.Value)
+                                {
+                                    result = sb.ToString(0, maxLength.Value);
+                                    return result;
+                                }
+                            }
+                        }
+                        result = sb.ToString();
+                        break;
+                    default: // utf-8
+                        using (var reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            if (maxLength.HasValue)
+                            {
+                                char[] charBuffer = new char[maxLength.Value];
+                                int charsRead = await reader.ReadAsync(charBuffer, 0, maxLength.Value);
+                                result = new string(charBuffer, 0, charsRead);
+                            }
+                            else
+                            {
+                                result = await reader.ReadToEndAsync();
+                            }
+                        }
+                        break;
+                }
+            }
+
+            return result;
         }
     }
 }
