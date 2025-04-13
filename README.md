@@ -6,8 +6,9 @@ A command-line interface for Unity Editor operations that allows you to control 
 
 1. Open Unity Package Manager
 2. Click the + button in the top-left corner
-3. Select "Add package from disk"
-4. Navigate to and select the `package.json` file in this folder
+3. Select "Add package from git URL"
+4. Enter the following URL: https://github.com/zacx-z/commandify.git
+5. Click "Add" to install the package
 
 ## Usage
 
