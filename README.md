@@ -33,7 +33,7 @@ echo "scene list --all" | nc localhost 13999
 ### Scene Management
 - `scene list [--opened | --all | --active]` - List scenes
 - `scene open [--additive] <path>` - Open a scene
-- `scene new [<scene-template-name>]` - Create a new scene
+- `scene new <path> [<scene-template-name>]` - Create a new scene
 - `scene save` - Save opened scenes
 - `scene unload <scene-specifier>...` - Unload specified scenes
 - `scene activate <scene-specifier>` - Set active scene

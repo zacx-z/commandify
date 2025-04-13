@@ -33,11 +33,12 @@ Options:
 
 #### new
 ```bash
-scene new [<scene-template-name>]
+scene new <path> [<scene-template-name>]
 ```
-Creates a new scene.
+Creates a new scene and saves it at the specified path.
 
 Options:
+- `<path>` - Path where the new scene will be saved (relative to Assets folder)
 - `<scene-template-name>` - Optional template to use for the new scene
 
 #### save

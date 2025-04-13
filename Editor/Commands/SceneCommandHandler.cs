@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using System;
@@ -26,7 +27,7 @@ namespace Commandify
                 case "open":
                     return OpenScene(subArgs, context);
                 case "new":
-                    return NewScene(context);
+                    return NewScene(subArgs, context);
                 case "save":
                     return SaveScene(context);
                 case "unload":
@@ -131,12 +132,69 @@ namespace Commandify
             return $"Opened scene: {scene.path}";
         }
 
-        private string NewScene(CommandContext context)
+        private string NewScene(List<string> args, CommandContext context)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            if (args.Count == 0)
+                throw new ArgumentException("Scene path required");
+
+            string path = args[0];
+            string templateName = args.Count > 1 ? args[1] : null;
+
+            // Handle variable reference for path
+            path = context.ResolveStringReference(path);
+            if (!path.EndsWith(".unity"))
+                path += ".unity";
+
+            // Create directory if it doesn't exist
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+
+            // Create new scene
+            Scene scene;
+            NewSceneSetup setup = NewSceneSetup.DefaultGameObjects;
+            NewSceneMode mode = NewSceneMode.Single;
+
+            if (!string.IsNullOrEmpty(templateName))
+            {
+                // Try to find the template scene
+                string templatePath = AssetDatabase.FindAssets($"t:Scene {templateName}")
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .FirstOrDefault(p => Path.GetFileNameWithoutExtension(p).Equals(templateName, StringComparison.OrdinalIgnoreCase));
+
+                if (string.IsNullOrEmpty(templatePath))
+                    throw new ArgumentException($"Scene template not found: {templateName}");
+
+                // Create empty scene first
+                var emptyScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, mode);
+                
+                // Open template in additive mode
+                var templateScene = EditorSceneManager.OpenScene(templatePath, OpenSceneMode.Additive);
+                
+                // Copy all objects from template to new scene
+                foreach (var rootObj in templateScene.GetRootGameObjects())
+                {
+                    UnityEngine.Object.Instantiate(rootObj);
+                }
+
+                // Close template scene
+                EditorSceneManager.CloseScene(templateScene, true);
+
+                // Use the empty scene we created
+                scene = emptyScene;
+            }
+            else
+            {
+                scene = EditorSceneManager.NewScene(setup, mode);
+            }
+            
+            // Save the scene to the specified path
+            if (!EditorSceneManager.SaveScene(scene, path))
+                throw new Exception($"Failed to save scene to path: {path}");
+
             // Store the new scene in the result variable
             context.SetLastResult(scene);
-            return "Created new scene";
+            return $"Created and saved new scene at: {path}";
         }
 
         private string SaveScene(CommandContext context)
