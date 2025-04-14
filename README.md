@@ -7,7 +7,7 @@ A command-line interface for Unity Editor operations that allows you to control 
 1. Open Unity Package Manager
 2. Click the + button in the top-left corner
 3. Select "Add package from git URL"
-4. Enter the following URL: https://github.com/zacx-z/commandify.git
+4. Enter the following URL: <https://github.com/zacx-z/commandify.git>
 5. Click "Add" to install the package
 
 ## Usage
@@ -20,11 +20,13 @@ A command-line interface for Unity Editor operations that allows you to control 
    - Any TCP client (e.g., netcat, telnet)
 
 Example using the interactive client:
+
 ```bash
 ./commandify-client.sh -p 13999 -h localhost
 ```
 
 Example using netcat:
+
 ```bash
 echo "scene list --all" | nc localhost 13999
 ```
@@ -32,6 +34,7 @@ echo "scene list --all" | nc localhost 13999
 ## Available Commands
 
 ### Scene Management
+
 - `scene list [--opened | --all | --active]` - List scenes
 - `scene open [--additive] <path>` - Open a scene
 - `scene new <path> [<scene-template-name>]` - Create a new scene
@@ -40,6 +43,7 @@ echo "scene list --all" | nc localhost 13999
 - `scene activate <scene-specifier>` - Set active scene
 
 ### GameObject Creation and Instantiation
+
 - `create [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector] <name>` - Create a new GameObject
 - `create [--parent path/to/parent] [--with Component1,Component2,...] [--prefab prefab-selector] <source-selector> <name>` - Create by duplicating an existing GameObject or instantiating a prefab
   - `name`: Name for the new GameObject (optional, defaults to source object name or "GameObject")
@@ -49,6 +53,7 @@ echo "scene list --all" | nc localhost 13999
   - `--prefab`: Optional prefab selector to specify which prefab to edit
 
 Examples:
+
 ```bash
 # Create basic GameObjects
 create MyObject                                      # Create empty GameObject named "MyObject"
@@ -84,9 +89,11 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 - `asset read <path> [--encoding encoding] [--max-length length]` - Read file content
 
 ### Prefab Operations
+
 - `prefab create [--variant] <selector> <path>` - Create prefab or prefab variant
 
 ### View Operations
+
 - `list [--filter <filterspec>] [--format <format>] [--components] <selector>` - List selected objects
   - `--format`: Output format (default: name only)
     - `instance-id`: Output as `@&instance-id` format
@@ -96,6 +103,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
   - `--filter`: Filter objects by name pattern
 
 ### Edit Operations
+
 - `select [--add] [--children] <selector>` - Select objects
 - `property <command> <selector> [<args>]` - Manage object properties
 - `component <command> <selector> [<args>]` - Manage components
@@ -108,6 +116,7 @@ create Prefabs/Icon.prefab NewIcon --prefab UI/ButtonPrefab --parent Panel  # In
 - `transform <command> <selector> [<args>]` - Transform operations
 
 Examples:
+
 ```bash
 # Search for components
 component search "*"                      # List all components
@@ -124,6 +133,7 @@ component search "*" --base Collider      # List all components inheriting from 
 - `transform show <selector>` - Show complete transform information including position, rotation, scale, and parent
 
 Examples:
+
 ```bash
 # Show current transform values
 transform show ^**             # Show complete transform info of everything in the scene
@@ -138,6 +148,7 @@ transform scale ^Cube (2,2,2)      # Double the size using vector format
 ```
 
 ### Variables
+
 - `set [--add | --sub] $<varname> <selector>` - Set variables
 - Built-in variable `$~` stores last command result (alternative output form)
 
@@ -153,6 +164,7 @@ transform scale ^Cube (2,2,2)      # Double the size using vector format
   - Can be undone with `undo` command
 
 ### Editor Operations
+
 - `package list` - List installed packages
 - `package install <package-name>` - Install package
 - `exec <menu-path>` - Execute menu item
@@ -160,6 +172,7 @@ transform scale ^Cube (2,2,2)      # Double the size using vector format
 - `run <script-path> [<options>]` - Execute a commandify script file
 
 Examples:
+
 ```bash
 # Execute menu items
 exec "Window/Commandify/Server Settings"  # Open server settings window
@@ -183,11 +196,13 @@ run scripts/create-quad.sh Background # Create a quad primitive
 A selector is used to identify and select objects in the Unity scene or project. The grammar is structured as follows:
 
 ### Basic Structure
+
 ```
 selector = <base-selector>[::<type-specifier>][#<range-specifier>]
 ```
 
 ### Base Selectors
+
 - `path` - Direct asset path (e.g., `Assets/Prefabs/Player`)
 - `^path` - Hierarchy path starting from root (e.g., `^Canvas/Panel/Button`)
 - `$varname` - Variable reference (e.g., `$selected`)
@@ -197,18 +212,23 @@ selector = <base-selector>[::<type-specifier>][#<range-specifier>]
 - `base-selector:component-type` - Filter by component (e.g., `^Player:Rigidbody`)
 
 ### Type Specifiers
+
 Type specifiers allow filtering results by type and loading all assets at a path:
-```
+
+```bash
 Assets/MyMaterial.mat::Material  # Load all assets at path and filter for Material type
 Assets/Textures/*::Texture      # Load all textures from directory
 ```
 
 ### Combining Selectors
+
 - `selector & selector` - Intersection (objects matching both selectors)
 - `selector | selector` - Union (objects matching either selector)
 
 ### Range Specifiers
+
 Range specifiers allow selecting specific items from the results:
+
 ```
 range = single_number | range_expression | multiple_ranges
 - single_number: "0" selects first item
@@ -217,6 +237,7 @@ range = single_number | range_expression | multiple_ranges
 ```
 
 ### Examples
+
 ```bash
 # Basic selections
 Assets/Prefabs/Player      # Select asset by path
@@ -238,3 +259,4 @@ $~:Transform            # Filter last command result by Transform
 # Combined selections
 ^Player:Rigidbody & @@t:physics  # Intersection of selections
 @#Enemy | @#Boss               # Select all enemies and bosses
+```
