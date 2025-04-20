@@ -288,15 +288,7 @@ namespace Commandify
 
         private float[] ParseVector(string value, int expectedComponents)
         {
-            var components = value.Trim('(', ')', ' ')
-                .Split(',')
-                .Select(s => float.Parse(s.Trim()))
-                .ToArray();
-
-            if (components.Length != expectedComponents)
-                throw new ArgumentException($"Expected {expectedComponents} components, got {components.Length}");
-
-            return components;
+            return VectorUtility.ParseVector(value, expectedComponents);
         }
     }
 }

@@ -117,9 +117,9 @@ component search "*" --base Collider      # List all components inheriting from 
 ```
 
 ### Transform Operations
-- `transform translate <selector> [<x> <y> <z>]` - Translate objects or show current positions
-- `transform rotate <selector> [<x> <y> <z>]` - Rotate objects or show current rotations
-- `transform scale <selector> [<x> <y> <z>]` - Scale objects or show current scales
+- `transform translate <selector> [(<x>,<y>,<z>) | <x> <y> <z>]` - Translate objects or show current positions
+- `transform rotate <selector> [(<x>,<y>,<z>) | <x> <y> <z>]` - Rotate objects or show current rotations
+- `transform scale <selector> [(<x>,<y>,<z>) | <x> <y> <z>]` - Scale objects or show current scales
 - `transform parent <parent-selector> <child-selector>...` - Parent objects
 - `transform show <selector>` - Show complete transform information including position, rotation, scale, and parent
 
@@ -132,9 +132,9 @@ transform rotate ^Cube              # Show rotations
 transform scale ^Cube           # Show scales
 
 # Apply transformations
-transform translate ^Cube 0 1 0   # Move up by 1 unit
-transform rotate ^Cube 0 90 0     # Rotate 90 degrees around Y
-transform scale ^Cube 2 2 2      # Double the size
+transform translate ^Cube (0,1,0)   # Move up by 1 unit using vector format
+transform rotate ^Cube (0,90,0)    # Rotate 90 degrees around Y using vector format
+transform scale ^Cube (2,2,2)      # Double the size using vector format
 ```
 
 ### Variables

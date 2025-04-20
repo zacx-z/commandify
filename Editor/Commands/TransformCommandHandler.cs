@@ -49,15 +49,27 @@ namespace Commandify
                 return string.Join("\n", positionInfo.Select(info => $"{info.name}: Position ({info.position.x}, {info.position.y}, {info.position.z})"));
             }
 
-            if (args.Count < 4)
-                throw new ArgumentException("Three float values (x, y, z) required");
+            Vector3 translation;
+            
+            // Check if using vector format (0,1,0) or separate arguments
+            if (args.Count == 2)
+            {
+                // Vector format
+                translation = VectorUtility.ParseVector3(args[1], context);
+            }
+            else if (args.Count >= 4)
+            {
+                // Separate x, y, z arguments (backward compatibility)
+                float x = ParseCoordinate(args[1], context);
+                float y = ParseCoordinate(args[2], context);
+                float z = ParseCoordinate(args[3], context);
+                translation = new Vector3(x, y, z);
+            }
+            else
+            {
+                throw new ArgumentException("Either a vector format (0,1,0) or three float values (x y z) required");
+            }
 
-            // Handle potential variable references for coordinates
-            float x = ParseCoordinate(args[1], context);
-            float y = ParseCoordinate(args[2], context);
-            float z = ParseCoordinate(args[3], context);
-
-            Vector3 translation = new Vector3(x, y, z);
             int count = 0;
 
             var transforms = objects.Select(o => o.transform).ToArray();
@@ -69,7 +81,7 @@ namespace Commandify
                 count++;
             }
 
-            return $"Translated {count} object(s) by ({x}, {y}, {z})";
+            return $"Translated {count} object(s) by ({translation.x}, {translation.y}, {translation.z})";
         }
 
         private async Task<string> RotateObjects(List<string> args, CommandContext context)
@@ -88,14 +100,27 @@ namespace Commandify
                 return string.Join("\n", rotations.Select(info => $"{info.name}: Rotation ({info.rotation.x}, {info.rotation.y}, {info.rotation.z})"));
             }
 
-            if (args.Count < 4)
-                throw new ArgumentException("Three float values (x, y, z) required");
+            Vector3 rotation;
+            
+            // Check if using vector format (0,1,0) or separate arguments
+            if (args.Count == 2)
+            {
+                // Vector format
+                rotation = VectorUtility.ParseVector3(args[1], context);
+            }
+            else if (args.Count >= 4)
+            {
+                // Separate x, y, z arguments (backward compatibility)
+                float x = ParseCoordinate(args[1], context);
+                float y = ParseCoordinate(args[2], context);
+                float z = ParseCoordinate(args[3], context);
+                rotation = new Vector3(x, y, z);
+            }
+            else
+            {
+                throw new ArgumentException("Either a vector format (0,1,0) or three float values (x y z) required");
+            }
 
-            float x = ParseCoordinate(args[1], context);
-            float y = ParseCoordinate(args[2], context);
-            float z = ParseCoordinate(args[3], context);
-
-            Vector3 rotation = new Vector3(x, y, z);
             int count = 0;
 
             var transforms = objects.Select(o => o.transform).ToArray();
@@ -107,7 +132,7 @@ namespace Commandify
                 count++;
             }
 
-            return $"Rotated {count} object(s) by ({x}, {y}, {z}) degrees";
+            return $"Rotated {count} object(s) by ({rotation.x}, {rotation.y}, {rotation.z}) degrees";
         }
 
         private async Task<string> ScaleObjects(List<string> args, CommandContext context)
@@ -126,14 +151,27 @@ namespace Commandify
                 return string.Join("\n", scales.Select(info => $"{info.name}: Scale ({info.scale.x}, {info.scale.y}, {info.scale.z})"));
             }
 
-            if (args.Count < 4)
-                throw new ArgumentException("Three float values (x, y, z) required");
+            Vector3 scale;
+            
+            // Check if using vector format (0,1,0) or separate arguments
+            if (args.Count == 2)
+            {
+                // Vector format
+                scale = VectorUtility.ParseVector3(args[1], context);
+            }
+            else if (args.Count >= 4)
+            {
+                // Separate x, y, z arguments (backward compatibility)
+                float x = ParseCoordinate(args[1], context);
+                float y = ParseCoordinate(args[2], context);
+                float z = ParseCoordinate(args[3], context);
+                scale = new Vector3(x, y, z);
+            }
+            else
+            {
+                throw new ArgumentException("Either a vector format (0,1,0) or three float values (x y z) required");
+            }
 
-            float x = ParseCoordinate(args[1], context);
-            float y = ParseCoordinate(args[2], context);
-            float z = ParseCoordinate(args[3], context);
-
-            Vector3 scale = new Vector3(x, y, z);
             int count = 0;
 
             var transforms = objects.Select(o => o.transform).ToArray();
@@ -145,7 +183,7 @@ namespace Commandify
                 count++;
             }
 
-            return $"Scaled {count} object(s) by ({x}, {y}, {z})";
+            return $"Scaled {count} object(s) by ({scale.x}, {scale.y}, {scale.z})";
         }
 
         private async Task<string> ParentObjects(List<string> args, CommandContext context)
