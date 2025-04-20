@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEditor;
 
 namespace Commandify
 {
     public class CommandProcessor
     {
+        private const string macrosDirectory = "Packages/com.nelasystem.commandify/Macros";
         private static CommandProcessor instance;
         public static CommandProcessor Instance => instance ??= new CommandProcessor();
 
@@ -15,11 +18,15 @@ namespace Commandify
         private readonly StringBuilder outputBuffer = new();
         private readonly StringBuilder errorBuffer = new();
         private CommandContext context;
+        private MacroCommandHandler macroHandler;
 
         private CommandProcessor()
         {
             InitializeHandlers();
             context = new CommandContext();
+            
+            // Initialize the macro handler
+            macroHandler = new MacroCommandHandler();
         }
 
         private void InitializeHandlers()
@@ -183,14 +190,35 @@ namespace Commandify
             }
 
             string command = tokens[0].ToLower();
-            if (!handlers.TryGetValue(command, out var handler))
+
+            // Try regular command handling first
+            if (handlers.TryGetValue(command, out var handler))
             {
-                AppendError($"Error: Unknown command '{command}'");
-                return errorBuffer.ToString();
+                var args = tokens.Skip(1).ToList();
+                return await handler.ExecuteAsync(args, context);
+            }
+            
+            // Fall back to macro command detection
+            if (IsMacroCommand(command))
+            {
+                var args = new List<string> { command }; // First arg is the macro name
+                args.AddRange(tokens.Skip(1));
+                return await macroHandler.ExecuteAsync(args, context);
             }
 
-            var args = tokens.Skip(1).ToList();
-            return await handler.ExecuteAsync(args, context);
+            // Command not found
+            AppendError($"Error: Unknown command '{command}'");
+            return errorBuffer.ToString();
+        }
+
+        private bool IsMacroCommand(string command)
+        {
+            if (string.IsNullOrEmpty(command))
+                return false;
+
+            // Check if a macro file with this name exists
+            string macroPath = Path.Combine(macrosDirectory, $"{command}.macro").Replace("\\", "/");
+            return File.Exists(macroPath);
         }
     }
 }
