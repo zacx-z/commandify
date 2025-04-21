@@ -1,6 +1,6 @@
 create $1 --with MeshFilter,MeshRenderer
 set obj $~
-property set $obj:MeshFilter m_Mesh BuiltinResources/New-Cube.fbx::Mesh
+property set $obj:MeshFilter m_Mesh BuiltinResources/Cube.fbx::Mesh
 property set $obj:MeshRenderer m_Materials [BuiltinExtra/Default-Diffuse.mat::Material]
 transform translate $obj $pos
 transform rotate $obj $rotation

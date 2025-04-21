@@ -101,12 +101,16 @@ namespace Commandify
 
         private async Task<object> ResolveCommandSubstitution(string reference)
         {
-            if (!reference.StartsWith("$(") || !reference.EndsWith(")"))
+            if (!IsCommandSubstitution(reference))
                 return null;
 
             string command = reference.Substring(2, reference.Length - 3);
             await CommandProcessor.Instance.ExecuteCommandAsync(command);
             return ResolveReference("$~");
+        }
+
+        private bool IsCommandSubstitution(string reference) {
+            return reference.StartsWith("$(") && reference.EndsWith(")");
         }
 
         public async Task<IEnumerable<UnityEngine.Object>> ResolveObjectReference(string reference)
@@ -141,7 +145,7 @@ namespace Commandify
             // If it's a variable reference
             if (reference.StartsWith("$"))
             {
-                var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
+                var value = IsCommandSubstitution(reference) ? ResolveCommandSubstitution(reference) : GetVariable(reference);
                 return value?.ToString() ?? "null";
             }
 
@@ -153,7 +157,7 @@ namespace Commandify
             if (!reference.StartsWith("$"))
                 return reference;
 
-            var value = ResolveCommandSubstitution(reference) ?? GetVariable(reference);
+            var value = IsCommandSubstitution(reference) ? ResolveCommandSubstitution(reference) : GetVariable(reference);
             if (value == null)
                 throw new ArgumentException($"Variable not found: {reference}");
 
