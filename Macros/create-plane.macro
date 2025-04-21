@@ -1,16 +1,16 @@
-# Creates a cube primitive with the specified name
+# Creates a plane primitive with the specified name
 # 
-# Usage: create-cube <name> [pos=(x,y,z)] [rotation=(x,y,z)] [size=(x,y,z)]
+# Usage: create-plane <name> [pos=(x,y,z)] [rotation=(x,y,z)] [size=(x,y,z)]
 #
 # Parameters:
-#   name - The name of the cube object (required)
+#   name - The name of the plane object (required)
 #   pos - Position vector (optional, default: current position)
 #   rotation - Rotation in Euler angles (optional, default: no rotation)
 #   size - Scale vector (optional, default: (1,1,1))
 #
 create $1 --with MeshFilter,MeshRenderer
 set obj $~
-property set $obj:MeshFilter m_Mesh BuiltinResources/Cube.fbx::Mesh
+property set $obj:MeshFilter m_Mesh BuiltinResources/Plane.fbx::Mesh
 property set $obj:MeshRenderer m_Materials [BuiltinExtra/Default-Diffuse.mat::Material]
 transform translate $obj $pos
 transform rotate $obj $rotation

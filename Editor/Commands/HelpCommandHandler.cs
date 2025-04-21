@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Commandify
 {
@@ -45,9 +46,40 @@ namespace Commandify
                     help.Add($"  {fileName}: {firstLine.TrimStart('#', ' ')}");
                 }
             }
+            
+            // Add available macros
+            if (Directory.Exists(MacroCommandHandler.macrosDirectory))
+            {
+                string[] macroFiles = Directory.GetFiles(MacroCommandHandler.macrosDirectory, "*.macro");
+                
+                if (macroFiles.Length > 0)
+                {
+                    help.Add("");
+                    help.Add("Available Macros:");
+                    
+                    foreach (var macroFile in macroFiles)
+                    {
+                        string macroName = Path.GetFileNameWithoutExtension(macroFile);
+                        string macroHelp = MacroCommandHandler.GetMacroHelp(macroFile);
+                        string description = "No description available";
+                        
+                        if (!string.IsNullOrEmpty(macroHelp))
+                        {
+                            // Extract the first line of the help text as a brief description
+                            var firstLine = macroHelp.Split('\n').FirstOrDefault();
+                            if (!string.IsNullOrEmpty(firstLine))
+                            {
+                                description = firstLine;
+                            }
+                        }
+                        
+                        help.Add($"  {macroName}: {description}");
+                    }
+                }
+            }
 
             help.Add("");
-            help.Add("Use 'help <command>' for detailed help on a specific command");
+            help.Add("Use 'help <command>' or 'help <macro>' for detailed help");
             help.Add("Type 'exit' to quit");
 
             return string.Join("\n", help);
@@ -55,6 +87,17 @@ namespace Commandify
 
         private string GetDetailedHelp(string command)
         {
+            string helpMacroName = command;
+            string helpMacroPath = MacroCommandHandler.GetMacroPath(helpMacroName);
+
+            if (File.Exists(helpMacroPath)) {
+                string helpText = MacroCommandHandler.GetMacroHelp(helpMacroPath);
+                if (string.IsNullOrEmpty(helpText))
+                    return $"No documentation available for macro '{helpMacroName}'";
+
+                return helpText;
+            }
+
             // First check for a documentation file using AssetDatabase
             string docPath = $"{DocumentationPath}/{command}.md";
 

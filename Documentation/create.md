@@ -39,13 +39,13 @@ create Assets/Prefabs/Enemy.prefab Boss         # Instantiate from prefab
 # Create in prefab
 create UI --parent ^Canvas --prefab $uiPrefab   # Create in UI prefab
 
-# Using primitive scripts
-./scripts/create-cube.sh                        # Create a cube
-./scripts/create-sphere.sh                      # Create a sphere
+# Using macros
+create-cube MyCube                             # Create a cube
+create-sphere MySphere                         # Create a sphere
 ```
 
 ## SEE ALSO
 - `prefab` - Prefab management commands
 - `selectors` - Selector syntax reference
 - `component` - Component management commands
-- `Documentation/primitive-scripts.md` - Detailed primitive script documentation
+- `Documentation/macros.md` - Detailed macro documentation

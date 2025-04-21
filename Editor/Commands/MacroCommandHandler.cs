@@ -9,16 +9,8 @@ namespace Commandify
 {
     public class MacroCommandHandler : ICommandHandler
     {
-        private readonly string macrosDirectory;
+        public const string macrosDirectory = "Packages/com.nelasystem.commandify/Macros";
         private static readonly Regex argPattern = new Regex(@"(?:([a-zA-Z0-9_]+)=)?(.+)", RegexOptions.Compiled);
-
-        public MacroCommandHandler()
-        {
-            // Get the path to the macros directory
-            macrosDirectory = Path.Combine(
-                Path.GetDirectoryName(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:Script MacroCommandHandler")[0])), 
-                "../../macros").Replace("\\", "/");
-        }
 
         public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
@@ -90,7 +82,7 @@ namespace Commandify
             }
         }
 
-        private string GetMacroPath(string macroName)
+        public static string GetMacroPath(string macroName)
         {
             // If the macro name already has .macro extension, use it as is
             if (macroName.EndsWith(".macro"))
@@ -118,6 +110,39 @@ namespace Commandify
             }
             
             return result;
+        }
+        
+        public static string GetMacroHelp(string macroPath)
+        {
+            if (!File.Exists(macroPath))
+                return string.Empty;
+                
+            string[] lines = File.ReadAllLines(macroPath);
+            List<string> commentLines = new List<string>();
+            
+            foreach (string line in lines)
+            {
+                string trimmedLine = line.Trim();
+                if (trimmedLine.StartsWith("#"))
+                {
+                    // Remove the # and any single space after it
+                    string commentText = trimmedLine.StartsWith("# ") ? 
+                        trimmedLine.Substring(2) : 
+                        trimmedLine.Substring(1);
+                        
+                    commentLines.Add(commentText);
+                }
+                else if (!string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    // Stop when we hit a non-comment, non-empty line
+                    break;
+                }
+            }
+            
+            if (commentLines.Count == 0)
+                return string.Empty;
+                
+            return string.Join("\n", commentLines);
         }
     }
 }
