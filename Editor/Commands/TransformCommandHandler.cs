@@ -9,6 +9,13 @@ namespace Commandify
 {
     public class TransformCommandHandler : ICommandHandler
     {
+        private enum TransformMode
+        {
+            Set,     // Set to the specified value
+            Add,     // Add to the current value
+            Subtract // Subtract from the current value
+        }
+
         public async Task<string> ExecuteAsync(List<string> args, CommandContext context)
         {
             if (args.Count == 0)
@@ -49,6 +56,15 @@ namespace Commandify
                 return string.Join("\n", positionInfo.Select(info => $"{info.name}: Position ({info.position.x}, {info.position.y}, {info.position.z})"));
             }
 
+            bool addMode = args.Contains("--add");
+            bool subMode = args.Contains("--sub");
+            TransformMode mode = TransformMode.Set; // Default mode
+            if (addMode) mode = TransformMode.Add;
+            if (subMode) mode = TransformMode.Subtract;
+            
+            // Remove the flags from arguments before parsing
+            args = args.Where(a => a != "--add" && a != "--sub").ToList();
+
             Vector3 translation;
             
             // Check if using vector format (0,1,0) or separate arguments
@@ -77,11 +93,23 @@ namespace Commandify
             
             foreach (var transform in transforms)
             {
-                transform.position += translation;
+                switch (mode)
+                {
+                    case TransformMode.Set:
+                        transform.position = translation;
+                        break;
+                    case TransformMode.Add:
+                        transform.position += translation;
+                        break;
+                    case TransformMode.Subtract:
+                        transform.position -= translation;
+                        break;
+                }
                 count++;
             }
 
-            return $"Translated {count} object(s) by ({translation.x}, {translation.y}, {translation.z})";
+            string operation = mode == TransformMode.Set ? "to" : (mode == TransformMode.Add ? "by adding" : "by subtracting");
+            return $"Translated {count} object(s) {operation} ({translation.x}, {translation.y}, {translation.z})";
         }
 
         private async Task<string> RotateObjects(List<string> args, CommandContext context)
@@ -99,6 +127,15 @@ namespace Commandify
                 IEnumerable<(string name, Vector3 rotation)> rotations = objects.Select(o => (o.name, o.transform.rotation.eulerAngles));
                 return string.Join("\n", rotations.Select(info => $"{info.name}: Rotation ({info.rotation.x}, {info.rotation.y}, {info.rotation.z})"));
             }
+
+            bool addMode = args.Contains("--add");
+            bool subMode = args.Contains("--sub");
+            TransformMode mode = TransformMode.Set; // Default mode
+            if (addMode) mode = TransformMode.Add;
+            if (subMode) mode = TransformMode.Subtract;
+            
+            // Remove the flags from arguments before parsing
+            args = args.Where(a => a != "--add" && a != "--sub").ToList();
 
             Vector3 rotation;
             
@@ -128,11 +165,23 @@ namespace Commandify
 
             foreach (var transform in transforms)
             {
-                transform.Rotate(rotation, Space.Self);
+                switch (mode)
+                {
+                    case TransformMode.Set:
+                        transform.rotation = Quaternion.Euler(rotation);
+                        break;
+                    case TransformMode.Add:
+                        transform.Rotate(rotation, Space.Self);
+                        break;
+                    case TransformMode.Subtract:
+                        transform.Rotate(-rotation, Space.Self);
+                        break;
+                }
                 count++;
             }
 
-            return $"Rotated {count} object(s) by ({rotation.x}, {rotation.y}, {rotation.z}) degrees";
+            string operation = mode == TransformMode.Set ? "to" : (mode == TransformMode.Add ? "by adding" : "by subtracting");
+            return $"Rotated {count} object(s) {operation} ({rotation.x}, {rotation.y}, {rotation.z}) degrees";
         }
 
         private async Task<string> ScaleObjects(List<string> args, CommandContext context)
@@ -150,6 +199,15 @@ namespace Commandify
                 IEnumerable<(string name, Vector3 scale)> scales = objects.Select(o => (o.name, o.transform.localScale));
                 return string.Join("\n", scales.Select(info => $"{info.name}: Scale ({info.scale.x}, {info.scale.y}, {info.scale.z})"));
             }
+
+            bool addMode = args.Contains("--add");
+            bool subMode = args.Contains("--sub");
+            TransformMode mode = TransformMode.Set; // Default mode
+            if (addMode) mode = TransformMode.Add;
+            if (subMode) mode = TransformMode.Subtract;
+            
+            // Remove the flags from arguments before parsing
+            args = args.Where(a => a != "--add" && a != "--sub").ToList();
 
             Vector3 scale;
             
@@ -179,11 +237,23 @@ namespace Commandify
 
             foreach (var transform in transforms)
             {
-                transform.localScale = Vector3.Scale(transform.localScale, scale);
+                switch (mode)
+                {
+                    case TransformMode.Set:
+                        transform.localScale = scale;
+                        break;
+                    case TransformMode.Add:
+                        transform.localScale += scale;
+                        break;
+                    case TransformMode.Subtract:
+                        transform.localScale -= scale;
+                        break;
+                }
                 count++;
             }
 
-            return $"Scaled {count} object(s) by ({scale.x}, {scale.y}, {scale.z})";
+            string operation = mode == TransformMode.Set ? "to" : (mode == TransformMode.Add ? "by adding" : "by subtracting");
+            return $"Scaled {count} object(s) {operation} ({scale.x}, {scale.y}, {scale.z})";
         }
 
         private async Task<string> ParentObjects(List<string> args, CommandContext context)
