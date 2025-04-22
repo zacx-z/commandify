@@ -217,7 +217,7 @@ namespace Commandify
                 string helpText = await ShowHelpForCommand(command);
                 string errorWithHelp = $"Error: {ex.Message}\n\n{helpText}";
                 AppendError(errorWithHelp);
-                return errorBuffer.ToString();
+                return null;
             }
         }
 
