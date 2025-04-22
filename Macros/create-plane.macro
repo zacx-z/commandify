@@ -8,6 +8,9 @@
 #   rotation - Rotation in Euler angles (required)
 #   size - Scale vector (required)
 #
+# Examples:
+#   create-plane MyPlane pos=(0,0,0) rotation=(0,0,0) size=(10,1,10)
+#
 create $1 --with MeshFilter,MeshRenderer
 set obj $~
 property set $obj:MeshFilter m_Mesh BuiltinResources/Plane.fbx::Mesh
