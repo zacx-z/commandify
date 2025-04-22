@@ -48,7 +48,8 @@ namespace Commandify
                 { "exec", new ExecCommandHandler() },
                 { "undo", new UndoRedoCommandHandler("undo") },
                 { "redo", new UndoRedoCommandHandler("redo") },
-                { "remove", new RemoveCommandHandler() }
+                { "remove", new RemoveCommandHandler() },
+                { "context", new ContextCommandHandler() }
             };
         }
 

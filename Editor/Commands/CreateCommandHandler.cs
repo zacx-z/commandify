@@ -130,7 +130,7 @@ namespace Commandify
                 else
                 {
                     // Create new
-                    obj = new GameObject(name);
+                    obj = ObjectFactory.CreateGameObject(name);
                 }
 
                 obj.transform.SetParent(parentTransform, false);
@@ -156,7 +156,7 @@ namespace Commandify
                 else
                 {
                     // Create new
-                    obj = new GameObject(name);
+                    obj = ObjectFactory.CreateGameObject(name);
                 }
 
                 Undo.RegisterCreatedObjectUndo(obj, "Create GameObject");
@@ -167,6 +167,12 @@ namespace Commandify
                     parentTransform = FindTransformInScene(parentPath);
                     if (parentTransform == null)
                         throw new ArgumentException($"Parent path not found in scene: {parentPath}");
+                }
+                // If no parent was specified, check if there's a default parent set
+                else
+                {
+                    // Try to get the default parent using reflection
+                    parentTransform = ContextCommandHandler.GetDefaultParentObject();
                 }
 
                 if (parentTransform != null)
