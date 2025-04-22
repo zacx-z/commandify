@@ -41,6 +41,9 @@ namespace Commandify
             {
                 if (string.IsNullOrWhiteSpace(command))
                     continue;
+                
+                if (command.TrimStart().StartsWith("#"))
+                    continue;
 
                 result = await CommandProcessor.Instance.ExecuteCommandAsync(command);
             }
