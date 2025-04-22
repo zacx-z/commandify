@@ -24,7 +24,7 @@ namespace Commandify
         {
             InitializeHandlers();
             context = new CommandContext();
-            
+
             // Initialize the macro handler
             macroHandler = new MacroCommandHandler();
         }
@@ -191,24 +191,34 @@ namespace Commandify
 
             string command = tokens[0].ToLower();
 
-            // Try regular command handling first
-            if (handlers.TryGetValue(command, out var handler))
-            {
-                var args = tokens.Skip(1).ToList();
-                return await handler.ExecuteAsync(args, context);
-            }
-            
-            // Fall back to macro command detection
-            if (IsMacroCommand(command))
-            {
-                var args = new List<string> { command }; // First arg is the macro name
-                args.AddRange(tokens.Skip(1));
-                return await macroHandler.ExecuteAsync(args, context);
-            }
+            try {
+                // Try regular command handling first
+                if (handlers.TryGetValue(command, out var handler))
+                {
+                    var args = tokens.Skip(1).ToList();
+                    return await handler.ExecuteAsync(args, context);
+                }
 
-            // Command not found
-            AppendError($"Error: Unknown command '{command}'");
-            return errorBuffer.ToString();
+                // Fall back to macro command detection
+                if (IsMacroCommand(command))
+                {
+                    var args = new List<string> { command }; // First arg is the macro name
+                    args.AddRange(tokens.Skip(1));
+                    return await macroHandler.ExecuteAsync(args, context);
+                }
+
+                // Command not found
+                AppendError($"Error: Unknown command '{command}'");
+                return errorBuffer.ToString();
+            }
+            catch (ArgumentException ex)
+            {
+                // When there's an argument error, show help for the command
+                string helpText = await ShowHelpForCommand(command);
+                string errorWithHelp = $"Error: {ex.Message}\n\n{helpText}";
+                AppendError(errorWithHelp);
+                return errorBuffer.ToString();
+            }
         }
 
         private bool IsMacroCommand(string command)
@@ -219,6 +229,25 @@ namespace Commandify
             // Check if a macro file with this name exists
             string macroPath = Path.Combine(macrosDirectory, $"{command}.macro").Replace("\\", "/");
             return File.Exists(macroPath);
+        }
+
+        private async Task<string> ShowHelpForCommand(string command)
+        {
+            // Create a help command handler to get help for the command
+            var helpHandler = new HelpCommandHandler();
+            var args = new List<string> { command };
+
+            try
+            {
+                // Try to get help for the command
+                var helpText = await helpHandler.ExecuteAsync(args, context);
+                return "Documentation:\n" + helpText;
+            }
+            catch
+            {
+                // If getting help fails, return a generic message
+                return $"Use 'help {command}' for usage information.";
+            }
         }
     }
 }

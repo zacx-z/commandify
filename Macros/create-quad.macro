@@ -4,9 +4,9 @@
 #
 # Parameters:
 #   name - The name of the quad object (required)
-#   pos - Position vector (optional, default: current position)
-#   rotation - Rotation in Euler angles (optional, default: no rotation)
-#   size - Scale vector (optional, default: (1,1,1))
+#   pos - Position vector (required)
+#   rotation - Rotation in Euler angles (required)
+#   size - Scale vector (required)
 #
 create $1 --with MeshFilter,MeshRenderer
 set obj $~
