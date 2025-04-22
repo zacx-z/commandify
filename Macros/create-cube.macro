@@ -1,6 +1,6 @@
 # Creates a cube primitive with the specified name
 # 
-# Usage: create-cube <name> [pos=(x,y,z)] [rotation=(x,y,z)] [size=(x,y,z)]
+# Usage: create-cube <name> pos=(x,y,z) rotation=(x,y,z) size=(x,y,z)
 #
 # Parameters:
 #   name - The name of the cube object (required)

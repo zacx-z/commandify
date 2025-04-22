@@ -1,6 +1,6 @@
 # Creates a capsule primitive with the specified name
 # 
-# Usage: create-capsule <name> [pos=(x,y,z)] [rotation=(x,y,z)] [size=(x,y,z)]
+# Usage: create-capsule <name> pos=(x,y,z) rotation=(x,y,z) size=(x,y,z)
 #
 # Parameters:
 #   name - The name of the capsule object (required)

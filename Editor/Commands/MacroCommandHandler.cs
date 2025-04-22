@@ -136,26 +136,32 @@ namespace Commandify
 
         private void ValidateMacroArguments(string[] commands, CommandContext context, string macroName)
         {
-            // Create a regex to find variable references like $1, $2, $name, etc.
-            var variableRegex = new Regex(@"\$(\d+|[a-zA-Z_][a-zA-Z0-9_]*)", RegexOptions.Compiled);
-            var requiredVariables = new HashSet<string>();
-
-            // Scan the macro file for variable references
-            foreach (string command in commands)
+            // First try to extract required arguments from the usage comment
+            var requiredVariables = ExtractRequiredArgumentsFromUsageComment(commands, macroName);
+            
+            // If no usage pattern was found, fall back to scanning the code
+            if (requiredVariables.Count == 0)
             {
-                if (string.IsNullOrWhiteSpace(command) || command.TrimStart().StartsWith("#"))
-                    continue;
-
-                var matches = variableRegex.Matches(command);
-                foreach (Match match in matches)
+                // Create a regex to find variable references like $1, $2, $name, etc.
+                var variableRegex = new Regex(@"\$(\d+|[a-zA-Z_][a-zA-Z0-9_]*)", RegexOptions.Compiled);
+                
+                // Scan the macro file for variable references
+                foreach (string command in commands)
                 {
-                    string varName = match.Groups[1].Value;
-                    string fullVarName = $"${varName}";
+                    if (string.IsNullOrWhiteSpace(command) || command.TrimStart().StartsWith("#"))
+                        continue;
 
-                    // Add to required variables if it's a number or named variable
-                    if (int.TryParse(varName, out _) || !string.IsNullOrEmpty(varName))
+                    var matches = variableRegex.Matches(command);
+                    foreach (Match match in matches)
                     {
-                        requiredVariables.Add(fullVarName);
+                        string varName = match.Groups[1].Value;
+                        string fullVarName = $"${varName}";
+
+                        // Add to required variables if it's a number or named variable
+                        if (int.TryParse(varName, out _) || !string.IsNullOrEmpty(varName))
+                        {
+                            requiredVariables.Add(fullVarName);
+                        }
                     }
                 }
             }
@@ -176,6 +182,58 @@ namespace Commandify
                 string missingVarList = string.Join(", ", missingVariables);
                 throw new ArgumentException($"Missing required arguments for macro '{macroName}': {missingVarList}");
             }
+        }
+        
+        private HashSet<string> ExtractRequiredArgumentsFromUsageComment(string[] commands, string macroName)
+        {
+            var requiredVariables = new HashSet<string>();
+            var usagePattern = new Regex(@"^#\s*Usage:\s*(.*?)$", RegexOptions.Compiled);
+            var paramPattern = new Regex(@"<([a-zA-Z0-9_]+)>|([a-zA-Z0-9_]+)=\(.*?\)", RegexOptions.Compiled);
+            
+            // Look for a usage line in the comments
+            foreach (string line in commands)
+            {
+                if (!line.TrimStart().StartsWith("#"))
+                    continue;
+                    
+                Match usageMatch = usagePattern.Match(line);
+                if (usageMatch.Success)
+                {
+                    string usageText = usageMatch.Groups[1].Value.Trim();
+                    
+                    // Extract the macro name and arguments from the usage pattern
+                    string[] parts = usageText.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    
+                    // Skip the first part (macro name) and process the arguments
+                    for (int i = 1; i < parts.Length; i++)
+                    {
+                        string part = parts[i];
+                        
+                        // Extract parameters from the usage pattern
+                        Match paramMatch = paramPattern.Match(part);
+                        if (paramMatch.Success)
+                        {
+                            // Check for positional parameter <name>
+                            if (!string.IsNullOrEmpty(paramMatch.Groups[1].Value))
+                            {
+                                // For positional parameters, use $1, $2, etc. based on position
+                                requiredVariables.Add($"${i}");
+                            }
+                            // Check for named parameter name=(x,y,z)
+                            else if (!string.IsNullOrEmpty(paramMatch.Groups[2].Value))
+                            {
+                                string paramName = paramMatch.Groups[2].Value;
+                                requiredVariables.Add($"${paramName}");
+                            }
+                        }
+                    }
+                    
+                    // We found the usage pattern, no need to continue searching
+                    break;
+                }
+            }
+            
+            return requiredVariables;
         }
 
         public static string GetMacroHelp(string macroPath)

@@ -1,6 +1,6 @@
 # Creates a sphere primitive with the specified name
 # 
-# Usage: create-sphere <name> [pos=(x,y,z)] [rotation=(x,y,z)] [size=(x,y,z)]
+# Usage: create-sphere <name> pos=(x,y,z) rotation=(x,y,z) size=(x,y,z)
 #
 # Parameters:
 #   name - The name of the sphere object (required)
