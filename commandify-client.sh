@@ -83,7 +83,14 @@ done
 
 # If single command mode, execute it and exit
 if [[ -n "$SINGLE_COMMAND" ]]; then
-    response=$(echo "$SINGLE_COMMAND" | nc $HOST $PORT)
+    # Use appropriate netcat command based on OS
+    if [[ "$(uname)" == "Darwin" ]] || ! (nc -h 2>&1 | grep -q -- "-N"); then
+        # macOS (BSD netcat) or other variants without -N support
+        response=$(echo "$SINGLE_COMMAND" | nc $HOST $PORT)
+    else
+        # GNU netcat with -N support
+        response=$(echo "$SINGLE_COMMAND" | nc -N $HOST $PORT)
+    fi
     if [[ -n "$response" ]]; then
         handle_response "$response"
         exit $?  # Exit with the error code from handle_response
@@ -135,12 +142,13 @@ while true; do
     fi
     # Send command and handle response
     if [[ -n "$cmd" ]]; then
-        # Check if netcat supports -N option (GNU netcat)
-        if nc -h 2>&1 | grep -q -- "-N"; then
-            response=$(echo "$cmd" | nc -N $HOST $PORT)
-        else
-            # Use regular netcat for BSD or other variants
+        # Detect netcat variant and use appropriate syntax
+        if [[ "$(uname)" == "Darwin" ]] || ! (nc -h 2>&1 | grep -q -- "-N"); then
+            # macOS (BSD netcat) or other variants without -N support
             response=$(echo "$cmd" | nc $HOST $PORT)
+        else
+            # GNU netcat with -N support
+            response=$(echo "$cmd" | nc -N $HOST $PORT)
         fi
 
         if [[ -n "$response" ]]; then
