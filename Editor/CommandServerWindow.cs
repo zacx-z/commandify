@@ -53,6 +53,12 @@ namespace Commandify
                     server.Stop();
                 }
             }
+
+            EditorGUILayout.Space(10);
+            if (GUILayout.Button("Open Command Log"))
+            {
+                CommandLogWindow.ShowWindow();
+            }
         }
 
         private void OnDisable()

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
+using UnityEngine;
 
 namespace Commandify
 {
@@ -183,34 +184,54 @@ namespace Commandify
         }
 
         public async Task<string> ExecuteCommandAsync(string commandLine) {
+            // Start logging this command
+            string output = null;
+            string error = null;
+
             var tokens = TokenizeCommand(commandLine);
             if (tokens.Count == 0)
             {
                 AppendError("Error: Invalid command format");
-                return errorBuffer.ToString();
+                error = errorBuffer.ToString();
+                return error;
             }
 
             string command = tokens[0].ToLower();
+            bool isMacro = IsMacroCommand(command);
+
+            CommandLogEntry logEntry = CommandLogger.Instance.BeginCommand(commandLine, isMacro);
 
             try {
                 // Try regular command handling first
                 if (handlers.TryGetValue(command, out var handler))
                 {
                     var args = tokens.Skip(1).ToList();
-                    return await handler.ExecuteAsync(args, context);
+                    string result = await handler.ExecuteAsync(args, context);
+
+                    // End the command logging
+                    CommandLogger.Instance.EndCommand(result, null);
+
+                    return result;
                 }
 
                 // Fall back to macro command detection
-                if (IsMacroCommand(command))
+                if (isMacro)
                 {
                     var args = new List<string> { command }; // First arg is the macro name
                     args.AddRange(tokens.Skip(1));
-                    return await macroHandler.ExecuteAsync(args, context);
+                    string result = await macroHandler.ExecuteAsync(args, context);
+
+                    // End the macro logging
+                    CommandLogger.Instance.EndCommand(result, null);
+
+                    return result;
                 }
 
                 // Command not found
                 AppendError($"Error: Unknown command '{command}'");
-                return errorBuffer.ToString();
+                error = errorBuffer.ToString();
+                CommandLogger.Instance.EndCommand(null, error);
+                return error;
             }
             catch (ArgumentException ex)
             {
@@ -218,7 +239,21 @@ namespace Commandify
                 string helpText = await ShowHelpForCommand(command);
                 string errorWithHelp = $"Error: {ex.Message}\n\n{helpText}";
                 AppendError(errorWithHelp);
+
+                // End the command logging with error
+                CommandLogger.Instance.EndCommand(null, errorBuffer.ToString().TrimEnd());
+
                 return null;
+            }
+            catch (Exception ex)
+            {
+                // For any other exception, log it and end the command
+                AppendError($"Error: {ex.Message}");
+
+                // End the command logging with error
+                CommandLogger.Instance.EndCommand(null, errorBuffer.ToString().TrimEnd());
+
+                throw; // Re-throw to be handled by the caller
             }
         }
 
