@@ -17,7 +17,7 @@ namespace Commandify
         private GUIContent clearIcon;
         private GUIContent outputIcon;
         private GUIContent errorIcon;
-        
+
         [MenuItem("Window/Commandify/Command Log")]
         public static void ShowWindow()
         {
@@ -32,7 +32,7 @@ namespace Commandify
             CommandLogger.Instance.OnLogEntryAdded += OnLogEntryAdded;
             CommandLogger.Instance.OnLogEntryUpdated += OnLogEntryUpdated;
             CommandLogger.Instance.OnLogCleared += OnLogCleared;
-            
+
             // Initialize styles
             InitializeStyles();
         }
@@ -52,27 +52,27 @@ namespace Commandify
                 richText = true,
                 wordWrap = true
             };
-            
+
             macroStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 richText = true,
                 wordWrap = true
             };
-            
+
             outputStyle = new GUIStyle(EditorStyles.textArea)
             {
                 richText = true,
                 wordWrap = true,
                 normal = { textColor = new Color(0.0f, 0.6f, 0.0f) }
             };
-            
+
             errorStyle = new GUIStyle(EditorStyles.textArea)
             {
                 richText = true,
                 wordWrap = true,
                 normal = { textColor = new Color(0.8f, 0.0f, 0.0f) }
             };
-            
+
             // Load icons
             clearIcon = EditorGUIUtility.IconContent("d_TreeEditor.Trash");
             outputIcon = EditorGUIUtility.IconContent("console.infoicon.sml");
@@ -82,27 +82,27 @@ namespace Commandify
         private void OnGUI()
         {
             DrawToolbar();
-            
+
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-            
+
             // Get top-level entries
             var topLevelEntries = CommandLogger.Instance.GetTopLevelEntries().ToList();
-            
+
             // Display entries in reverse chronological order (newest first)
             for (int i = topLevelEntries.Count - 1; i >= 0; i--)
             {
                 DrawLogEntry(topLevelEntries[i], 0);
             }
-            
+
             EditorGUILayout.EndScrollView();
         }
-        
+
         private void DrawToolbar()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-            
+
             GUILayout.FlexibleSpace();
-            
+
             if (GUILayout.Button(clearIcon, EditorStyles.toolbarButton))
             {
                 if (EditorUtility.DisplayDialog("Clear Command Log", 
@@ -111,10 +111,10 @@ namespace Commandify
                     CommandLogger.Instance.Clear();
                 }
             }
-            
+
             EditorGUILayout.EndHorizontal();
         }
-        
+
         private void DrawLogEntry(CommandLogEntry entry, int indentLevel)
         {
             // Ensure we have a foldout state for this entry
@@ -122,22 +122,22 @@ namespace Commandify
             {
                 foldoutStates[entry] = true;
             }
-            
+
             if (!outputFoldoutStates.ContainsKey(entry))
             {
                 outputFoldoutStates[entry] = false;
             }
-            
+
             EditorGUILayout.BeginHorizontal();
-            
+
             // Indent based on level
             GUILayout.Space(indentLevel * 20);
-            
+
             // Display foldout if this is a macro or has children
             if (entry.IsMacro || entry.Children.Count > 0)
             {
                 foldoutStates[entry] = EditorGUILayout.Foldout(foldoutStates[entry], "", true);
-                
+
                 // Display command with timestamp
                 string timestamp = entry.Timestamp.ToString("HH:mm:ss");
                 EditorGUILayout.LabelField($"[{timestamp}] {entry.Command}", entry.IsMacro ? macroStyle : commandStyle);
@@ -149,31 +149,31 @@ namespace Commandify
                 GUILayout.Space(15); // Space for alignment with foldouts
                 EditorGUILayout.LabelField($"[{timestamp}] {entry.Command}", commandStyle);
             }
-            
+
             EditorGUILayout.EndHorizontal();
-            
+
             // Display output/error indicators if they exist
             if (!string.IsNullOrEmpty(entry.Output) || !string.IsNullOrEmpty(entry.Error))
             {
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Space((indentLevel * 20) + 15);
-                
+
                 // Use a foldout for output/error
                 outputFoldoutStates[entry] = EditorGUILayout.Foldout(outputFoldoutStates[entry], "Output/Error", true);
-                
+
                 // Show indicators
                 if (!string.IsNullOrEmpty(entry.Output))
                 {
                     GUILayout.Label(outputIcon, GUILayout.Width(16));
                 }
-                
+
                 if (!string.IsNullOrEmpty(entry.Error))
                 {
                     GUILayout.Label(errorIcon, GUILayout.Width(16));
                 }
-                
+
                 EditorGUILayout.EndHorizontal();
-                
+
                 // Show output and error if foldout is open
                 if (outputFoldoutStates[entry])
                 {
@@ -183,20 +183,20 @@ namespace Commandify
                         GUILayout.Space((indentLevel * 20) + 30);
                         EditorGUILayout.LabelField("Output:", EditorStyles.boldLabel);
                         EditorGUILayout.EndHorizontal();
-                        
+
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space((indentLevel * 20) + 30);
                         EditorGUILayout.TextArea(entry.Output, outputStyle);
                         EditorGUILayout.EndHorizontal();
                     }
-                    
+
                     if (!string.IsNullOrEmpty(entry.Error))
                     {
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space((indentLevel * 20) + 30);
                         EditorGUILayout.LabelField("Error:", EditorStyles.boldLabel);
                         EditorGUILayout.EndHorizontal();
-                        
+
                         EditorGUILayout.BeginHorizontal();
                         GUILayout.Space((indentLevel * 20) + 30);
                         EditorGUILayout.TextArea(entry.Error, errorStyle);
@@ -204,7 +204,7 @@ namespace Commandify
                     }
                 }
             }
-            
+
             // Draw children if foldout is open
             if (foldoutStates[entry] && entry.Children.Count > 0)
             {
@@ -214,19 +214,19 @@ namespace Commandify
                 }
             }
         }
-        
+
         private void OnLogEntryAdded(CommandLogEntry entry)
         {
             // Force a repaint when a new entry is added
             Repaint();
         }
-        
+
         private void OnLogEntryUpdated(CommandLogEntry entry)
         {
             // Force a repaint when an entry is updated
             Repaint();
         }
-        
+
         private void OnLogCleared()
         {
             // Clear foldout states and repaint

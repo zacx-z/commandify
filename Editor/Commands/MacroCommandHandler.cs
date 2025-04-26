@@ -52,22 +52,7 @@ namespace Commandify
                     if (command.TrimStart().StartsWith("#"))
                         continue;
 
-                    // Log each individual command within the macro
-                    CommandLogEntry logEntry = CommandLogger.Instance.BeginCommand(command);
-                    
-                    try
-                    {
-                        result = await CommandProcessor.Instance.ExecuteCommandAsync(command);
-                    }
-                    catch (Exception ex)
-                    {
-                        // End the command logging with the error
-                        CommandLogger.Instance.EndCommand(null, ex.Message);
-                        throw; // Re-throw to be handled by the caller
-                    }
-                    
-                    // End the command logging
-                    CommandLogger.Instance.EndCommand();
+                    result = await CommandProcessor.Instance.ExecuteCommandAsync(command);
                 }
 
                 return result;
